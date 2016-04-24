@@ -1,3 +1,7 @@
+(function () {
+
+'use strict';
+
 require('angular');
 require('angular-ui-router');
 require('angular-aria');
@@ -9,12 +13,11 @@ require('angular-google-maps');
 require('angular-simple-logger');
 require('angular-local-storage');
 require('lodash');
-require('./components/about/about.js');
-require('./components/map/map.controller.js');
-require('./components/map/map.factory.js');
+const mapCtrl = require('./components/map/map.controller.js');
+const mapFactory = require('./components/map/map.factory.js');
+const headerNav = require('./shared/header/header.js');
 
-
-var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule','myApp.about']);
+var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule']);
 
 app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
 
@@ -27,33 +30,18 @@ app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvide
 	$urlRouterProvider.otherwise("/");
 
 	$stateProvider
-	.state('map', {
+	.state('home', {
 		url: "/",
-		views : {
-			"" : {
-				templateUrl:"app/components/map/map.html"
-			},
-			"header@map":{
-				templateUrl:"app/shared/header/header.html"
-			}
-		},
-		controller: 'homeCtrl',
+		templateUrl: "./app/components/map/map.html",
+		controller: 'MapCtrl',
 		resolve: {
-			zipOptions: (MapFactory) => {
-				console.log("resolving")
-				return MapFactory.getZipOptions().then(res => res)
-			}
+			allZips: (MapFactory) => MapFactory.getZipOptions().then(res => res)
 		}
 	})
-	.state('about', {
-		url: "/about",
-		views : {
-			"" : {
-				templateUrl:"app/components/about/about.html"
-			},
-			"header@about":{
-				templateUrl:"app/shared/header/header.html"
-			}
-		}
-	});
 });
+
+app.controller('MapCtrl', mapCtrl);
+app.factory('MapFactory', mapFactory);
+app.directive('headerNav', headerNav);
+
+}());

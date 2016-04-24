@@ -1,4 +1,4 @@
-angular.module('myApp').factory('MapFactory', function($http) {
+module.exports = function($http) {
 
   var obj={};
 
@@ -44,4 +44,4 @@ angular.module('myApp').factory('MapFactory', function($http) {
 
   return obj;
 
-})
+}

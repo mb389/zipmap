@@ -1,9 +1,9 @@
+module.exports = function($scope, uiGmapGoogleMapApi, $http, MapFactory, localStorageService, allZips) {
 
-angular.module('myApp').controller('homeCtrl', function($scope, uiGmapGoogleMapApi, $http, MapFactory, localStorageService) {
-	console.log($stateParams)
-  MapFactory.getZipOptions().then(res => $scope.zipOptions=res)
+  // MapFactory.getZipOptions().then(res => $scope.zipOptions=res)
 
-  // $scope.zipOptions=$stateParams.zipOptions;
+  $scope.zipOptions=allZips;
+
 
 	angular.extend($scope, {
 		map: {
@@ -69,4 +69,4 @@ angular.module('myApp').controller('homeCtrl', function($scope, uiGmapGoogleMapA
     }
   }
 
-});
+};

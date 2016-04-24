@@ -97172,6 +97172,10 @@ function plural(ms, n, name) {
 }
 
 },{}],21:[function(require,module,exports){
+(function () {
+
+'use strict';
+
 require('angular');
 require('angular-ui-router');
 require('angular-aria');
@@ -97183,12 +97187,11 @@ require('angular-google-maps');
 require('angular-simple-logger');
 require('angular-local-storage');
 require('lodash');
-require('./components/about/about.js');
-require('./components/map/map.controller.js');
-require('./components/map/map.factory.js');
+const mapCtrl = require('./components/map/map.controller.js');
+const mapFactory = require('./components/map/map.factory.js');
+const headerNav = require('./shared/header/header.js');
 
-
-var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule','myApp.about']);
+var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule']);
 
 app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
 
@@ -97201,50 +97204,29 @@ app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvide
 	$urlRouterProvider.otherwise("/");
 
 	$stateProvider
-	.state('map', {
+	.state('home', {
 		url: "/",
-		views : {
-			"" : {
-				templateUrl:"app/components/map/map.html"
-			},
-			"header@map":{
-				templateUrl:"app/shared/header/header.html"
-			}
-		},
-		controller: 'homeCtrl',
+		templateUrl: "./app/components/map/map.html",
+		controller: 'MapCtrl',
 		resolve: {
-			zipOptions: (MapFactory) => {
-				console.log("resolving")
-				return MapFactory.getZipOptions().then(res => res)
-			}
+			allZips: (MapFactory) => MapFactory.getZipOptions().then(res => res)
 		}
 	})
-	.state('about', {
-		url: "/about",
-		views : {
-			"" : {
-				templateUrl:"app/components/about/about.html"
-			},
-			"header@about":{
-				templateUrl:"app/shared/header/header.html"
-			}
-		}
-	});
 });
 
-},{"../../node_modules/isteven-angular-multiselect/isteven-multi-select.js":18,"./components/about/about.js":22,"./components/map/map.controller.js":23,"./components/map/map.factory.js":24,"angular":15,"angular-animate":2,"angular-aria":4,"angular-google-maps":5,"angular-local-storage":6,"angular-material":9,"angular-sanitize":11,"angular-simple-logger":12,"angular-ui-router":13,"lodash":19}],22:[function(require,module,exports){
-angular.module('myApp.about', [])
-.controller('aboutCtrl',[function(){
-	this.aboutText = 'Built by Michael Bushoy';
-}]);
+app.controller('MapCtrl', mapCtrl);
+app.factory('MapFactory', mapFactory);
+app.directive('headerNav', headerNav);
 
-},{}],23:[function(require,module,exports){
+}());
 
-angular.module('myApp').controller('homeCtrl', function($scope, uiGmapGoogleMapApi, $http, MapFactory, localStorageService) {
-	console.log($stateParams)
-  MapFactory.getZipOptions().then(res => $scope.zipOptions=res)
+},{"../../node_modules/isteven-angular-multiselect/isteven-multi-select.js":18,"./components/map/map.controller.js":22,"./components/map/map.factory.js":23,"./shared/header/header.js":24,"angular":15,"angular-animate":2,"angular-aria":4,"angular-google-maps":5,"angular-local-storage":6,"angular-material":9,"angular-sanitize":11,"angular-simple-logger":12,"angular-ui-router":13,"lodash":19}],22:[function(require,module,exports){
+module.exports = function($scope, uiGmapGoogleMapApi, $http, MapFactory, localStorageService, allZips) {
 
-  // $scope.zipOptions=$stateParams.zipOptions;
+  // MapFactory.getZipOptions().then(res => $scope.zipOptions=res)
+
+  $scope.zipOptions=allZips;
+
 
 	angular.extend($scope, {
 		map: {
@@ -97310,10 +97292,10 @@ angular.module('myApp').controller('homeCtrl', function($scope, uiGmapGoogleMapA
     }
   }
 
-});
+};
 
-},{}],24:[function(require,module,exports){
-angular.module('myApp').factory('MapFactory', function($http) {
+},{}],23:[function(require,module,exports){
+module.exports = function($http) {
 
   var obj={};
 
@@ -97359,6 +97341,14 @@ angular.module('myApp').factory('MapFactory', function($http) {
 
   return obj;
 
-})
+}
+
+},{}],24:[function(require,module,exports){
+module.exports = function() {
+	return {
+		restrict: 'E',
+		templateUrl: './app/shared/header/header.html'
+	};
+};
 
 },{}]},{},[21]);

@@ -1,9 +1,11 @@
 body h1 {
   color: #3372D9; }
 
+.selectbox {
+  padding: 25px 0; }
+
 #map_canvas {
   height: 80%;
-  width: 80%;
   border-radius: 5px;
   border: 1px solid silver; }
 
