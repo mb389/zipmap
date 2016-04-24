@@ -2,32 +2,46 @@ require('angular');
 require('angular-ui-router');
 require('angular-aria');
 require('angular-animate');
+require('angular-sanitize')
 require('angular-material');
+require('../../node_modules/isteven-angular-multiselect/isteven-multi-select.js')
 require('angular-google-maps');
 require('angular-simple-logger');
 require('angular-local-storage');
 require('lodash');
-require('./components/home/home.js');
 require('./components/about/about.js');
-require('./components/home/map.controller.js');
-require('./components/home/map.factory.js');
+require('./components/map/map.controller.js');
+require('./components/map/map.factory.js');
 
 
-var app = angular.module('myApp', ['ui.router','ngMaterial','LocalStorageModule','myApp.home','myApp.about'])
+var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule','myApp.about']);
 
-app.config(function($stateProvider, $urlRouterProvider) {
+app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
+
+	uiGmapGoogleMapApiProvider.configure({
+			key: 'AIzaSyB6e7CrrfD4O0AfRSOK0nkHWdpZmQj-98k',
+			v: '3.30',
+			libraries: 'weather,geometry,visualization,places'
+	});
 
 	$urlRouterProvider.otherwise("/");
 
 	$stateProvider
-	.state('home', {
+	.state('map', {
 		url: "/",
 		views : {
 			"" : {
-				templateUrl:"app/components/home/home.html"
+				templateUrl:"app/components/map/map.html"
 			},
-			"header@home":{
+			"header@map":{
 				templateUrl:"app/shared/header/header.html"
+			}
+		},
+		controller: 'homeCtrl',
+		resolve: {
+			zipOptions: (MapFactory) => {
+				console.log("resolving")
+				return MapFactory.getZipOptions().then(res => res)
 			}
 		}
 	})

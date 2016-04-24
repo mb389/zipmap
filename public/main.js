@@ -43302,7 +43302,730 @@ require('./angular-material');
 // Export namespace
 module.exports = 'ngMaterial';
 
-},{"./angular-material":8,"angular":13,"angular-animate":2,"angular-aria":4}],10:[function(require,module,exports){
+},{"./angular-material":8,"angular":15,"angular-animate":2,"angular-aria":4}],10:[function(require,module,exports){
+/**
+ * @license AngularJS v1.5.5
+ * (c) 2010-2016 Google, Inc. http://angularjs.org
+ * License: MIT
+ */
+(function(window, angular) {'use strict';
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ *     Any commits to this file should be reviewed with security in mind.  *
+ *   Changes to this file can potentially create security vulnerabilities. *
+ *          An approval from 2 Core members with history of modifying      *
+ *                         this file is required.                          *
+ *                                                                         *
+ *  Does the change somehow allow for arbitrary javascript to be executed? *
+ *    Or allows for someone to change the prototype of built-in objects?   *
+ *     Or gives undesired access to variables likes document or window?    *
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+var $sanitizeMinErr = angular.$$minErr('$sanitize');
+
+/**
+ * @ngdoc module
+ * @name ngSanitize
+ * @description
+ *
+ * # ngSanitize
+ *
+ * The `ngSanitize` module provides functionality to sanitize HTML.
+ *
+ *
+ * <div doc-module-components="ngSanitize"></div>
+ *
+ * See {@link ngSanitize.$sanitize `$sanitize`} for usage.
+ */
+
+/**
+ * @ngdoc service
+ * @name $sanitize
+ * @kind function
+ *
+ * @description
+ *   Sanitizes an html string by stripping all potentially dangerous tokens.
+ *
+ *   The input is sanitized by parsing the HTML into tokens. All safe tokens (from a whitelist) are
+ *   then serialized back to properly escaped html string. This means that no unsafe input can make
+ *   it into the returned string.
+ *
+ *   The whitelist for URL sanitization of attribute values is configured using the functions
+ *   `aHrefSanitizationWhitelist` and `imgSrcSanitizationWhitelist` of {@link ng.$compileProvider
+ *   `$compileProvider`}.
+ *
+ *   The input may also contain SVG markup if this is enabled via {@link $sanitizeProvider}.
+ *
+ * @param {string} html HTML input.
+ * @returns {string} Sanitized HTML.
+ *
+ * @example
+   <example module="sanitizeExample" deps="angular-sanitize.js">
+   <file name="index.html">
+     <script>
+         angular.module('sanitizeExample', ['ngSanitize'])
+           .controller('ExampleController', ['$scope', '$sce', function($scope, $sce) {
+             $scope.snippet =
+               '<p style="color:blue">an html\n' +
+               '<em onmouseover="this.textContent=\'PWN3D!\'">click here</em>\n' +
+               'snippet</p>';
+             $scope.deliberatelyTrustDangerousSnippet = function() {
+               return $sce.trustAsHtml($scope.snippet);
+             };
+           }]);
+     </script>
+     <div ng-controller="ExampleController">
+        Snippet: <textarea ng-model="snippet" cols="60" rows="3"></textarea>
+       <table>
+         <tr>
+           <td>Directive</td>
+           <td>How</td>
+           <td>Source</td>
+           <td>Rendered</td>
+         </tr>
+         <tr id="bind-html-with-sanitize">
+           <td>ng-bind-html</td>
+           <td>Automatically uses $sanitize</td>
+           <td><pre>&lt;div ng-bind-html="snippet"&gt;<br/>&lt;/div&gt;</pre></td>
+           <td><div ng-bind-html="snippet"></div></td>
+         </tr>
+         <tr id="bind-html-with-trust">
+           <td>ng-bind-html</td>
+           <td>Bypass $sanitize by explicitly trusting the dangerous value</td>
+           <td>
+           <pre>&lt;div ng-bind-html="deliberatelyTrustDangerousSnippet()"&gt;
+&lt;/div&gt;</pre>
+           </td>
+           <td><div ng-bind-html="deliberatelyTrustDangerousSnippet()"></div></td>
+         </tr>
+         <tr id="bind-default">
+           <td>ng-bind</td>
+           <td>Automatically escapes</td>
+           <td><pre>&lt;div ng-bind="snippet"&gt;<br/>&lt;/div&gt;</pre></td>
+           <td><div ng-bind="snippet"></div></td>
+         </tr>
+       </table>
+       </div>
+   </file>
+   <file name="protractor.js" type="protractor">
+     it('should sanitize the html snippet by default', function() {
+       expect(element(by.css('#bind-html-with-sanitize div')).getInnerHtml()).
+         toBe('<p>an html\n<em>click here</em>\nsnippet</p>');
+     });
+
+     it('should inline raw snippet if bound to a trusted value', function() {
+       expect(element(by.css('#bind-html-with-trust div')).getInnerHtml()).
+         toBe("<p style=\"color:blue\">an html\n" +
+              "<em onmouseover=\"this.textContent='PWN3D!'\">click here</em>\n" +
+              "snippet</p>");
+     });
+
+     it('should escape snippet without any filter', function() {
+       expect(element(by.css('#bind-default div')).getInnerHtml()).
+         toBe("&lt;p style=\"color:blue\"&gt;an html\n" +
+              "&lt;em onmouseover=\"this.textContent='PWN3D!'\"&gt;click here&lt;/em&gt;\n" +
+              "snippet&lt;/p&gt;");
+     });
+
+     it('should update', function() {
+       element(by.model('snippet')).clear();
+       element(by.model('snippet')).sendKeys('new <b onclick="alert(1)">text</b>');
+       expect(element(by.css('#bind-html-with-sanitize div')).getInnerHtml()).
+         toBe('new <b>text</b>');
+       expect(element(by.css('#bind-html-with-trust div')).getInnerHtml()).toBe(
+         'new <b onclick="alert(1)">text</b>');
+       expect(element(by.css('#bind-default div')).getInnerHtml()).toBe(
+         "new &lt;b onclick=\"alert(1)\"&gt;text&lt;/b&gt;");
+     });
+   </file>
+   </example>
+ */
+
+
+/**
+ * @ngdoc provider
+ * @name $sanitizeProvider
+ *
+ * @description
+ * Creates and configures {@link $sanitize} instance.
+ */
+function $SanitizeProvider() {
+  var svgEnabled = false;
+
+  this.$get = ['$$sanitizeUri', function($$sanitizeUri) {
+    if (svgEnabled) {
+      angular.extend(validElements, svgElements);
+    }
+    return function(html) {
+      var buf = [];
+      htmlParser(html, htmlSanitizeWriter(buf, function(uri, isImage) {
+        return !/^unsafe:/.test($$sanitizeUri(uri, isImage));
+      }));
+      return buf.join('');
+    };
+  }];
+
+
+  /**
+   * @ngdoc method
+   * @name $sanitizeProvider#enableSvg
+   * @kind function
+   *
+   * @description
+   * Enables a subset of svg to be supported by the sanitizer.
+   *
+   * <div class="alert alert-warning">
+   *   <p>By enabling this setting without taking other precautions, you might expose your
+   *   application to click-hijacking attacks. In these attacks, sanitized svg elements could be positioned
+   *   outside of the containing element and be rendered over other elements on the page (e.g. a login
+   *   link). Such behavior can then result in phishing incidents.</p>
+   *
+   *   <p>To protect against these, explicitly setup `overflow: hidden` css rule for all potential svg
+   *   tags within the sanitized content:</p>
+   *
+   *   <br>
+   *
+   *   <pre><code>
+   *   .rootOfTheIncludedContent svg {
+   *     overflow: hidden !important;
+   *   }
+   *   </code></pre>
+   * </div>
+   *
+   * @param {boolean=} regexp New regexp to whitelist urls with.
+   * @returns {boolean|ng.$sanitizeProvider} Returns the currently configured value if called
+   *    without an argument or self for chaining otherwise.
+   */
+  this.enableSvg = function(enableSvg) {
+    if (angular.isDefined(enableSvg)) {
+      svgEnabled = enableSvg;
+      return this;
+    } else {
+      return svgEnabled;
+    }
+  };
+}
+
+function sanitizeText(chars) {
+  var buf = [];
+  var writer = htmlSanitizeWriter(buf, angular.noop);
+  writer.chars(chars);
+  return buf.join('');
+}
+
+
+// Regular Expressions for parsing tags and attributes
+var SURROGATE_PAIR_REGEXP = /[\uD800-\uDBFF][\uDC00-\uDFFF]/g,
+  // Match everything outside of normal chars and " (quote character)
+  NON_ALPHANUMERIC_REGEXP = /([^\#-~ |!])/g;
+
+
+// Good source of info about elements and attributes
+// http://dev.w3.org/html5/spec/Overview.html#semantics
+// http://simon.html5.org/html-elements
+
+// Safe Void Elements - HTML5
+// http://dev.w3.org/html5/spec/Overview.html#void-elements
+var voidElements = toMap("area,br,col,hr,img,wbr");
+
+// Elements that you can, intentionally, leave open (and which close themselves)
+// http://dev.w3.org/html5/spec/Overview.html#optional-tags
+var optionalEndTagBlockElements = toMap("colgroup,dd,dt,li,p,tbody,td,tfoot,th,thead,tr"),
+    optionalEndTagInlineElements = toMap("rp,rt"),
+    optionalEndTagElements = angular.extend({},
+                                            optionalEndTagInlineElements,
+                                            optionalEndTagBlockElements);
+
+// Safe Block Elements - HTML5
+var blockElements = angular.extend({}, optionalEndTagBlockElements, toMap("address,article," +
+        "aside,blockquote,caption,center,del,dir,div,dl,figure,figcaption,footer,h1,h2,h3,h4,h5," +
+        "h6,header,hgroup,hr,ins,map,menu,nav,ol,pre,section,table,ul"));
+
+// Inline Elements - HTML5
+var inlineElements = angular.extend({}, optionalEndTagInlineElements, toMap("a,abbr,acronym,b," +
+        "bdi,bdo,big,br,cite,code,del,dfn,em,font,i,img,ins,kbd,label,map,mark,q,ruby,rp,rt,s," +
+        "samp,small,span,strike,strong,sub,sup,time,tt,u,var"));
+
+// SVG Elements
+// https://wiki.whatwg.org/wiki/Sanitization_rules#svg_Elements
+// Note: the elements animate,animateColor,animateMotion,animateTransform,set are intentionally omitted.
+// They can potentially allow for arbitrary javascript to be executed. See #11290
+var svgElements = toMap("circle,defs,desc,ellipse,font-face,font-face-name,font-face-src,g,glyph," +
+        "hkern,image,linearGradient,line,marker,metadata,missing-glyph,mpath,path,polygon,polyline," +
+        "radialGradient,rect,stop,svg,switch,text,title,tspan");
+
+// Blocked Elements (will be stripped)
+var blockedElements = toMap("script,style");
+
+var validElements = angular.extend({},
+                                   voidElements,
+                                   blockElements,
+                                   inlineElements,
+                                   optionalEndTagElements);
+
+//Attributes that have href and hence need to be sanitized
+var uriAttrs = toMap("background,cite,href,longdesc,src,xlink:href");
+
+var htmlAttrs = toMap('abbr,align,alt,axis,bgcolor,border,cellpadding,cellspacing,class,clear,' +
+    'color,cols,colspan,compact,coords,dir,face,headers,height,hreflang,hspace,' +
+    'ismap,lang,language,nohref,nowrap,rel,rev,rows,rowspan,rules,' +
+    'scope,scrolling,shape,size,span,start,summary,tabindex,target,title,type,' +
+    'valign,value,vspace,width');
+
+// SVG attributes (without "id" and "name" attributes)
+// https://wiki.whatwg.org/wiki/Sanitization_rules#svg_Attributes
+var svgAttrs = toMap('accent-height,accumulate,additive,alphabetic,arabic-form,ascent,' +
+    'baseProfile,bbox,begin,by,calcMode,cap-height,class,color,color-rendering,content,' +
+    'cx,cy,d,dx,dy,descent,display,dur,end,fill,fill-rule,font-family,font-size,font-stretch,' +
+    'font-style,font-variant,font-weight,from,fx,fy,g1,g2,glyph-name,gradientUnits,hanging,' +
+    'height,horiz-adv-x,horiz-origin-x,ideographic,k,keyPoints,keySplines,keyTimes,lang,' +
+    'marker-end,marker-mid,marker-start,markerHeight,markerUnits,markerWidth,mathematical,' +
+    'max,min,offset,opacity,orient,origin,overline-position,overline-thickness,panose-1,' +
+    'path,pathLength,points,preserveAspectRatio,r,refX,refY,repeatCount,repeatDur,' +
+    'requiredExtensions,requiredFeatures,restart,rotate,rx,ry,slope,stemh,stemv,stop-color,' +
+    'stop-opacity,strikethrough-position,strikethrough-thickness,stroke,stroke-dasharray,' +
+    'stroke-dashoffset,stroke-linecap,stroke-linejoin,stroke-miterlimit,stroke-opacity,' +
+    'stroke-width,systemLanguage,target,text-anchor,to,transform,type,u1,u2,underline-position,' +
+    'underline-thickness,unicode,unicode-range,units-per-em,values,version,viewBox,visibility,' +
+    'width,widths,x,x-height,x1,x2,xlink:actuate,xlink:arcrole,xlink:role,xlink:show,xlink:title,' +
+    'xlink:type,xml:base,xml:lang,xml:space,xmlns,xmlns:xlink,y,y1,y2,zoomAndPan', true);
+
+var validAttrs = angular.extend({},
+                                uriAttrs,
+                                svgAttrs,
+                                htmlAttrs);
+
+function toMap(str, lowercaseKeys) {
+  var obj = {}, items = str.split(','), i;
+  for (i = 0; i < items.length; i++) {
+    obj[lowercaseKeys ? angular.lowercase(items[i]) : items[i]] = true;
+  }
+  return obj;
+}
+
+var inertBodyElement;
+(function(window) {
+  var doc;
+  if (window.document && window.document.implementation) {
+    doc = window.document.implementation.createHTMLDocument("inert");
+  } else {
+    throw $sanitizeMinErr('noinert', "Can't create an inert html document");
+  }
+  var docElement = doc.documentElement || doc.getDocumentElement();
+  var bodyElements = docElement.getElementsByTagName('body');
+
+  // usually there should be only one body element in the document, but IE doesn't have any, so we need to create one
+  if (bodyElements.length === 1) {
+    inertBodyElement = bodyElements[0];
+  } else {
+    var html = doc.createElement('html');
+    inertBodyElement = doc.createElement('body');
+    html.appendChild(inertBodyElement);
+    doc.appendChild(html);
+  }
+})(window);
+
+/**
+ * @example
+ * htmlParser(htmlString, {
+ *     start: function(tag, attrs) {},
+ *     end: function(tag) {},
+ *     chars: function(text) {},
+ *     comment: function(text) {}
+ * });
+ *
+ * @param {string} html string
+ * @param {object} handler
+ */
+function htmlParser(html, handler) {
+  if (html === null || html === undefined) {
+    html = '';
+  } else if (typeof html !== 'string') {
+    html = '' + html;
+  }
+  inertBodyElement.innerHTML = html;
+
+  //mXSS protection
+  var mXSSAttempts = 5;
+  do {
+    if (mXSSAttempts === 0) {
+      throw $sanitizeMinErr('uinput', "Failed to sanitize html because the input is unstable");
+    }
+    mXSSAttempts--;
+
+    // strip custom-namespaced attributes on IE<=11
+    if (window.document.documentMode) {
+      stripCustomNsAttrs(inertBodyElement);
+    }
+    html = inertBodyElement.innerHTML; //trigger mXSS
+    inertBodyElement.innerHTML = html;
+  } while (html !== inertBodyElement.innerHTML);
+
+  var node = inertBodyElement.firstChild;
+  while (node) {
+    switch (node.nodeType) {
+      case 1: // ELEMENT_NODE
+        handler.start(node.nodeName.toLowerCase(), attrToMap(node.attributes));
+        break;
+      case 3: // TEXT NODE
+        handler.chars(node.textContent);
+        break;
+    }
+
+    var nextNode;
+    if (!(nextNode = node.firstChild)) {
+      if (node.nodeType == 1) {
+        handler.end(node.nodeName.toLowerCase());
+      }
+      nextNode = node.nextSibling;
+      if (!nextNode) {
+        while (nextNode == null) {
+          node = node.parentNode;
+          if (node === inertBodyElement) break;
+          nextNode = node.nextSibling;
+          if (node.nodeType == 1) {
+            handler.end(node.nodeName.toLowerCase());
+          }
+        }
+      }
+    }
+    node = nextNode;
+  }
+
+  while (node = inertBodyElement.firstChild) {
+    inertBodyElement.removeChild(node);
+  }
+}
+
+function attrToMap(attrs) {
+  var map = {};
+  for (var i = 0, ii = attrs.length; i < ii; i++) {
+    var attr = attrs[i];
+    map[attr.name] = attr.value;
+  }
+  return map;
+}
+
+
+/**
+ * Escapes all potentially dangerous characters, so that the
+ * resulting string can be safely inserted into attribute or
+ * element text.
+ * @param value
+ * @returns {string} escaped text
+ */
+function encodeEntities(value) {
+  return value.
+    replace(/&/g, '&amp;').
+    replace(SURROGATE_PAIR_REGEXP, function(value) {
+      var hi = value.charCodeAt(0);
+      var low = value.charCodeAt(1);
+      return '&#' + (((hi - 0xD800) * 0x400) + (low - 0xDC00) + 0x10000) + ';';
+    }).
+    replace(NON_ALPHANUMERIC_REGEXP, function(value) {
+      return '&#' + value.charCodeAt(0) + ';';
+    }).
+    replace(/</g, '&lt;').
+    replace(/>/g, '&gt;');
+}
+
+/**
+ * create an HTML/XML writer which writes to buffer
+ * @param {Array} buf use buf.join('') to get out sanitized html string
+ * @returns {object} in the form of {
+ *     start: function(tag, attrs) {},
+ *     end: function(tag) {},
+ *     chars: function(text) {},
+ *     comment: function(text) {}
+ * }
+ */
+function htmlSanitizeWriter(buf, uriValidator) {
+  var ignoreCurrentElement = false;
+  var out = angular.bind(buf, buf.push);
+  return {
+    start: function(tag, attrs) {
+      tag = angular.lowercase(tag);
+      if (!ignoreCurrentElement && blockedElements[tag]) {
+        ignoreCurrentElement = tag;
+      }
+      if (!ignoreCurrentElement && validElements[tag] === true) {
+        out('<');
+        out(tag);
+        angular.forEach(attrs, function(value, key) {
+          var lkey=angular.lowercase(key);
+          var isImage = (tag === 'img' && lkey === 'src') || (lkey === 'background');
+          if (validAttrs[lkey] === true &&
+            (uriAttrs[lkey] !== true || uriValidator(value, isImage))) {
+            out(' ');
+            out(key);
+            out('="');
+            out(encodeEntities(value));
+            out('"');
+          }
+        });
+        out('>');
+      }
+    },
+    end: function(tag) {
+      tag = angular.lowercase(tag);
+      if (!ignoreCurrentElement && validElements[tag] === true && voidElements[tag] !== true) {
+        out('</');
+        out(tag);
+        out('>');
+      }
+      if (tag == ignoreCurrentElement) {
+        ignoreCurrentElement = false;
+      }
+    },
+    chars: function(chars) {
+      if (!ignoreCurrentElement) {
+        out(encodeEntities(chars));
+      }
+    }
+  };
+}
+
+
+/**
+ * When IE9-11 comes across an unknown namespaced attribute e.g. 'xlink:foo' it adds 'xmlns:ns1' attribute to declare
+ * ns1 namespace and prefixes the attribute with 'ns1' (e.g. 'ns1:xlink:foo'). This is undesirable since we don't want
+ * to allow any of these custom attributes. This method strips them all.
+ *
+ * @param node Root element to process
+ */
+function stripCustomNsAttrs(node) {
+  if (node.nodeType === window.Node.ELEMENT_NODE) {
+    var attrs = node.attributes;
+    for (var i = 0, l = attrs.length; i < l; i++) {
+      var attrNode = attrs[i];
+      var attrName = attrNode.name.toLowerCase();
+      if (attrName === 'xmlns:ns1' || attrName.indexOf('ns1:') === 0) {
+        node.removeAttributeNode(attrNode);
+        i--;
+        l--;
+      }
+    }
+  }
+
+  var nextNode = node.firstChild;
+  if (nextNode) {
+    stripCustomNsAttrs(nextNode);
+  }
+
+  nextNode = node.nextSibling;
+  if (nextNode) {
+    stripCustomNsAttrs(nextNode);
+  }
+}
+
+
+
+// define ngSanitize module and register $sanitize service
+angular.module('ngSanitize', []).provider('$sanitize', $SanitizeProvider);
+
+/* global sanitizeText: false */
+
+/**
+ * @ngdoc filter
+ * @name linky
+ * @kind function
+ *
+ * @description
+ * Finds links in text input and turns them into html links. Supports `http/https/ftp/mailto` and
+ * plain email address links.
+ *
+ * Requires the {@link ngSanitize `ngSanitize`} module to be installed.
+ *
+ * @param {string} text Input text.
+ * @param {string} target Window (`_blank|_self|_parent|_top`) or named frame to open links in.
+ * @param {object|function(url)} [attributes] Add custom attributes to the link element.
+ *
+ *    Can be one of:
+ *
+ *    - `object`: A map of attributes
+ *    - `function`: Takes the url as a parameter and returns a map of attributes
+ *
+ *    If the map of attributes contains a value for `target`, it overrides the value of
+ *    the target parameter.
+ *
+ *
+ * @returns {string} Html-linkified and {@link $sanitize sanitized} text.
+ *
+ * @usage
+   <span ng-bind-html="linky_expression | linky"></span>
+ *
+ * @example
+   <example module="linkyExample" deps="angular-sanitize.js">
+     <file name="index.html">
+       <div ng-controller="ExampleController">
+       Snippet: <textarea ng-model="snippet" cols="60" rows="3"></textarea>
+       <table>
+         <tr>
+           <th>Filter</th>
+           <th>Source</th>
+           <th>Rendered</th>
+         </tr>
+         <tr id="linky-filter">
+           <td>linky filter</td>
+           <td>
+             <pre>&lt;div ng-bind-html="snippet | linky"&gt;<br>&lt;/div&gt;</pre>
+           </td>
+           <td>
+             <div ng-bind-html="snippet | linky"></div>
+           </td>
+         </tr>
+         <tr id="linky-target">
+          <td>linky target</td>
+          <td>
+            <pre>&lt;div ng-bind-html="snippetWithSingleURL | linky:'_blank'"&gt;<br>&lt;/div&gt;</pre>
+          </td>
+          <td>
+            <div ng-bind-html="snippetWithSingleURL | linky:'_blank'"></div>
+          </td>
+         </tr>
+         <tr id="linky-custom-attributes">
+          <td>linky custom attributes</td>
+          <td>
+            <pre>&lt;div ng-bind-html="snippetWithSingleURL | linky:'_self':{rel: 'nofollow'}"&gt;<br>&lt;/div&gt;</pre>
+          </td>
+          <td>
+            <div ng-bind-html="snippetWithSingleURL | linky:'_self':{rel: 'nofollow'}"></div>
+          </td>
+         </tr>
+         <tr id="escaped-html">
+           <td>no filter</td>
+           <td><pre>&lt;div ng-bind="snippet"&gt;<br>&lt;/div&gt;</pre></td>
+           <td><div ng-bind="snippet"></div></td>
+         </tr>
+       </table>
+     </file>
+     <file name="script.js">
+       angular.module('linkyExample', ['ngSanitize'])
+         .controller('ExampleController', ['$scope', function($scope) {
+           $scope.snippet =
+             'Pretty text with some links:\n'+
+             'http://angularjs.org/,\n'+
+             'mailto:us@somewhere.org,\n'+
+             'another@somewhere.org,\n'+
+             'and one more: ftp://127.0.0.1/.';
+           $scope.snippetWithSingleURL = 'http://angularjs.org/';
+         }]);
+     </file>
+     <file name="protractor.js" type="protractor">
+       it('should linkify the snippet with urls', function() {
+         expect(element(by.id('linky-filter')).element(by.binding('snippet | linky')).getText()).
+             toBe('Pretty text with some links: http://angularjs.org/, us@somewhere.org, ' +
+                  'another@somewhere.org, and one more: ftp://127.0.0.1/.');
+         expect(element.all(by.css('#linky-filter a')).count()).toEqual(4);
+       });
+
+       it('should not linkify snippet without the linky filter', function() {
+         expect(element(by.id('escaped-html')).element(by.binding('snippet')).getText()).
+             toBe('Pretty text with some links: http://angularjs.org/, mailto:us@somewhere.org, ' +
+                  'another@somewhere.org, and one more: ftp://127.0.0.1/.');
+         expect(element.all(by.css('#escaped-html a')).count()).toEqual(0);
+       });
+
+       it('should update', function() {
+         element(by.model('snippet')).clear();
+         element(by.model('snippet')).sendKeys('new http://link.');
+         expect(element(by.id('linky-filter')).element(by.binding('snippet | linky')).getText()).
+             toBe('new http://link.');
+         expect(element.all(by.css('#linky-filter a')).count()).toEqual(1);
+         expect(element(by.id('escaped-html')).element(by.binding('snippet')).getText())
+             .toBe('new http://link.');
+       });
+
+       it('should work with the target property', function() {
+        expect(element(by.id('linky-target')).
+            element(by.binding("snippetWithSingleURL | linky:'_blank'")).getText()).
+            toBe('http://angularjs.org/');
+        expect(element(by.css('#linky-target a')).getAttribute('target')).toEqual('_blank');
+       });
+
+       it('should optionally add custom attributes', function() {
+        expect(element(by.id('linky-custom-attributes')).
+            element(by.binding("snippetWithSingleURL | linky:'_self':{rel: 'nofollow'}")).getText()).
+            toBe('http://angularjs.org/');
+        expect(element(by.css('#linky-custom-attributes a')).getAttribute('rel')).toEqual('nofollow');
+       });
+     </file>
+   </example>
+ */
+angular.module('ngSanitize').filter('linky', ['$sanitize', function($sanitize) {
+  var LINKY_URL_REGEXP =
+        /((ftp|https?):\/\/|(www\.)|(mailto:)?[A-Za-z0-9._%+-]+@)\S*[^\s.;,(){}<>"\u201d\u2019]/i,
+      MAILTO_REGEXP = /^mailto:/i;
+
+  var linkyMinErr = angular.$$minErr('linky');
+  var isString = angular.isString;
+
+  return function(text, target, attributes) {
+    if (text == null || text === '') return text;
+    if (!isString(text)) throw linkyMinErr('notstring', 'Expected string but received: {0}', text);
+
+    var match;
+    var raw = text;
+    var html = [];
+    var url;
+    var i;
+    while ((match = raw.match(LINKY_URL_REGEXP))) {
+      // We can not end in these as they are sometimes found at the end of the sentence
+      url = match[0];
+      // if we did not match ftp/http/www/mailto then assume mailto
+      if (!match[2] && !match[4]) {
+        url = (match[3] ? 'http://' : 'mailto:') + url;
+      }
+      i = match.index;
+      addText(raw.substr(0, i));
+      addLink(url, match[0].replace(MAILTO_REGEXP, ''));
+      raw = raw.substring(i + match[0].length);
+    }
+    addText(raw);
+    return $sanitize(html.join(''));
+
+    function addText(text) {
+      if (!text) {
+        return;
+      }
+      html.push(sanitizeText(text));
+    }
+
+    function addLink(url, text) {
+      var key;
+      html.push('<a ');
+      if (angular.isFunction(attributes)) {
+        attributes = attributes(url);
+      }
+      if (angular.isObject(attributes)) {
+        for (key in attributes) {
+          html.push(key + '="' + attributes[key] + '" ');
+        }
+      } else {
+        attributes = {};
+      }
+      if (angular.isDefined(target) && !('target' in attributes)) {
+        html.push('target="',
+                  target,
+                  '" ');
+      }
+      html.push('href="',
+                url.replace(/"/g, '&quot;'),
+                '">');
+      addText(text);
+      html.push('</a>');
+    }
+  };
+}]);
+
+
+})(window, window.angular);
+
+},{}],11:[function(require,module,exports){
+require('./angular-sanitize');
+module.exports = 'ngSanitize';
+
+},{"./angular-sanitize":10}],12:[function(require,module,exports){
 /**
  *  angular-simple-logger
  *
@@ -43450,7 +44173,7 @@ angular.module('nemLogging').provider('nemSimpleLogger', [
   }
 ]);
 
-},{"angular":13,"debug":14}],11:[function(require,module,exports){
+},{"angular":15,"debug":16}],13:[function(require,module,exports){
 /**
  * State-based routing for AngularJS
  * @version v0.2.18
@@ -47990,7 +48713,7 @@ angular.module('ui.router.state')
   .filter('isState', $IsStateFilter)
   .filter('includedByState', $IncludedByStateFilter);
 })(window, window.angular);
-},{}],12:[function(require,module,exports){
+},{}],14:[function(require,module,exports){
 /**
  * @license AngularJS v1.5.5
  * (c) 2010-2016 Google, Inc. http://angularjs.org
@@ -78859,11 +79582,11 @@ $provide.value("$locale", {
 })(window);
 
 !window.angular.$$csp().noInlineStyle && window.angular.element(document.head).prepend('<style type="text/css">@charset "UTF-8";[ng\\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>');
-},{}],13:[function(require,module,exports){
+},{}],15:[function(require,module,exports){
 require('./angular');
 module.exports = angular;
 
-},{"./angular":12}],14:[function(require,module,exports){
+},{"./angular":14}],16:[function(require,module,exports){
 
 /**
  * This is the web browser implementation of `debug()`.
@@ -79033,7 +79756,7 @@ function localstorage(){
   } catch (e) {}
 }
 
-},{"./debug":15}],15:[function(require,module,exports){
+},{"./debug":17}],17:[function(require,module,exports){
 
 /**
  * This is the common logic for both the Node.js and web browser
@@ -79232,7 +79955,1120 @@ function coerce(val) {
   return val;
 }
 
-},{"ms":17}],16:[function(require,module,exports){
+},{"ms":20}],18:[function(require,module,exports){
+/* 
+ * Angular JS Multi Select
+ * Creates a dropdown-like button with checkboxes. 
+ *
+ * Project started on: Tue, 14 Jan 2014 - 5:18:02 PM
+ * Current version: 4.0.0
+ * 
+ * Released under the MIT License
+ * --------------------------------------------------------------------------------
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 Ignatius Steven (https://github.com/isteven)
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy 
+ * of this software and associated documentation files (the "Software"), to deal 
+ * in the Software without restriction, including without limitation the rights 
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+ * copies of the Software, and to permit persons to whom the Software is 
+ * furnished to do so, subject to the following conditions: 
+ *
+ * The above copyright notice and this permission notice shall be included in all 
+ * copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, 
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, 
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+ * SOFTWARE.
+ * --------------------------------------------------------------------------------
+ */
+
+'use strict'
+
+angular.module( 'isteven-multi-select', ['ng'] ).directive( 'istevenMultiSelect' , [ '$sce', '$timeout', '$templateCache', function ( $sce, $timeout, $templateCache ) {
+    return {
+        restrict: 
+            'AE',
+
+        scope: 
+        {   
+            // models
+            inputModel      : '=',
+            outputModel     : '=',
+
+            // settings based on attribute
+            isDisabled      : '=',
+
+            // callbacks
+            onClear         : '&',  
+            onClose         : '&',
+            onSearchChange  : '&',  
+            onItemClick     : '&',            
+            onOpen          : '&', 
+            onReset         : '&',  
+            onSelectAll     : '&',  
+            onSelectNone    : '&',  
+
+            // i18n
+            translation     : '='   
+        },
+        
+        /* 
+         * The rest are attributes. They don't need to be parsed / binded, so we can safely access them by value.
+         * - buttonLabel, directiveId, helperElements, itemLabel, maxLabels, orientation, selectionMode, minSearchLength,
+         *   tickProperty, disableProperty, groupProperty, searchProperty, maxHeight, outputProperties
+         */
+                                                         
+         templateUrl: 
+            'isteven-multi-select.htm',                            
+
+        link: function ( $scope, element, attrs ) {                       
+
+            $scope.backUp           = [];
+            $scope.varButtonLabel   = '';               
+            $scope.spacingProperty  = '';
+            $scope.indexProperty    = '';                        
+            $scope.orientationH     = false;
+            $scope.orientationV     = true;
+            $scope.filteredModel    = [];
+            $scope.inputLabel       = { labelFilter: '' };                        
+            $scope.tabIndex         = 0;            
+            $scope.lang             = {};
+            $scope.helperStatus     = {
+                all     : true,
+                none    : true,
+                reset   : true,
+                filter  : true
+            };
+
+            var 
+                prevTabIndex        = 0,
+                helperItems         = [],
+                helperItemsLength   = 0,
+                checkBoxLayer       = '',
+                scrolled            = false,
+                selectedItems       = [],
+                formElements        = [],
+                vMinSearchLength    = 0,
+                clickedItem         = null                
+
+            // v3.0.0
+            // clear button clicked
+            $scope.clearClicked = function( e ) {                
+                $scope.inputLabel.labelFilter = '';
+                $scope.updateFilter();
+                $scope.select( 'clear', e );                
+            }
+
+            // A little hack so that AngularJS ng-repeat can loop using start and end index like a normal loop
+            // http://stackoverflow.com/questions/16824853/way-to-ng-repeat-defined-number-of-times-instead-of-repeating-over-array
+            $scope.numberToArray = function( num ) {
+                return new Array( num );   
+            }
+
+            // Call this function when user type on the filter field
+            $scope.searchChanged = function() {                                                
+                if ( $scope.inputLabel.labelFilter.length < vMinSearchLength && $scope.inputLabel.labelFilter.length > 0 ) {
+                    return false;
+                }                
+                $scope.updateFilter();
+            }
+
+            $scope.updateFilter = function()
+            {      
+                // we check by looping from end of input-model
+                $scope.filteredModel = [];
+                var i = 0;
+
+                if ( typeof $scope.inputModel === 'undefined' ) {
+                    return false;                   
+                }
+
+                for( i = $scope.inputModel.length - 1; i >= 0; i-- ) {
+
+                    // if it's group end, we push it to filteredModel[];
+                    if ( typeof $scope.inputModel[ i ][ attrs.groupProperty ] !== 'undefined' && $scope.inputModel[ i ][ attrs.groupProperty ] === false ) {
+                        $scope.filteredModel.push( $scope.inputModel[ i ] );
+                    }
+                    
+                    // if it's data 
+                    var gotData = false;
+                    if ( typeof $scope.inputModel[ i ][ attrs.groupProperty ] === 'undefined' ) {                        
+                        
+                        // If we set the search-key attribute, we use this loop. 
+                        if ( typeof attrs.searchProperty !== 'undefined' && attrs.searchProperty !== '' ) {
+
+                            for (var key in $scope.inputModel[ i ]  ) {
+                                if ( 
+                                    typeof $scope.inputModel[ i ][ key ] !== 'boolean'
+                                    && String( $scope.inputModel[ i ][ key ] ).toUpperCase().indexOf( $scope.inputLabel.labelFilter.toUpperCase() ) >= 0                                     
+                                    && attrs.searchProperty.indexOf( key ) > -1
+                                ) {
+                                    gotData = true;
+                                    break;
+                                }
+                            }                        
+                        }
+                        // if there's no search-key attribute, we use this one. Much better on performance.
+                        else {
+                            for ( var key in $scope.inputModel[ i ]  ) {
+                                if ( 
+                                    typeof $scope.inputModel[ i ][ key ] !== 'boolean'
+                                    && String( $scope.inputModel[ i ][ key ] ).toUpperCase().indexOf( $scope.inputLabel.labelFilter.toUpperCase() ) >= 0                                     
+                                ) {
+                                    gotData = true;
+                                    break;
+                                }
+                            }                        
+                        }
+
+                        if ( gotData === true ) {    
+                            // push
+                            $scope.filteredModel.push( $scope.inputModel[ i ] );
+                        }
+                    }
+
+                    // if it's group start
+                    if ( typeof $scope.inputModel[ i ][ attrs.groupProperty ] !== 'undefined' && $scope.inputModel[ i ][ attrs.groupProperty ] === true ) {
+
+                        if ( typeof $scope.filteredModel[ $scope.filteredModel.length - 1 ][ attrs.groupProperty ] !== 'undefined' 
+                                && $scope.filteredModel[ $scope.filteredModel.length - 1 ][ attrs.groupProperty ] === false ) {
+                            $scope.filteredModel.pop();
+                        }
+                        else {
+                            $scope.filteredModel.push( $scope.inputModel[ i ] );
+                        }
+                    }
+                }                
+
+                $scope.filteredModel.reverse();  
+                
+                $timeout( function() {                    
+
+                    $scope.getFormElements();               
+                    
+                    // Callback: on filter change                      
+                    if ( $scope.inputLabel.labelFilter.length > vMinSearchLength ) {
+
+                        var filterObj = [];
+
+                        angular.forEach( $scope.filteredModel, function( value, key ) {
+                            if ( typeof value !== 'undefined' ) {                   
+                                if ( typeof value[ attrs.groupProperty ] === 'undefined' ) {                                                                    
+                                    var tempObj = angular.copy( value );
+                                    var index = filterObj.push( tempObj );                                
+                                    delete filterObj[ index - 1 ][ $scope.indexProperty ];
+                                    delete filterObj[ index - 1 ][ $scope.spacingProperty ];      
+                                }
+                            }
+                        });
+
+                        $scope.onSearchChange({ 
+                            data: 
+                            {
+                                keyword: $scope.inputLabel.labelFilter, 
+                                result: filterObj 
+                            } 
+                        });
+                    }
+                },0);
+            };
+
+            // List all the input elements. We need this for our keyboard navigation.
+            // This function will be called everytime the filter is updated. 
+            // Depending on the size of filtered mode, might not good for performance, but oh well..
+            $scope.getFormElements = function() {                                     
+                formElements = [];
+
+                var 
+                    selectButtons   = [],
+                    inputField      = [],
+                    checkboxes      = [],
+                    clearButton     = [];
+                
+                // If available, then get select all, select none, and reset buttons
+                if ( $scope.helperStatus.all || $scope.helperStatus.none || $scope.helperStatus.reset ) {                                                       
+                    selectButtons = element.children().children().next().children().children()[ 0 ].getElementsByTagName( 'button' );                    
+                    // If available, then get the search box and the clear button
+                    if ( $scope.helperStatus.filter ) {                                            
+                        // Get helper - search and clear button. 
+                        inputField =    element.children().children().next().children().children().next()[ 0 ].getElementsByTagName( 'input' );                    
+                        clearButton =   element.children().children().next().children().children().next()[ 0 ].getElementsByTagName( 'button' );                        
+                    }
+                }
+                else {
+                    if ( $scope.helperStatus.filter ) {   
+                        // Get helper - search and clear button. 
+                        inputField =    element.children().children().next().children().children()[ 0 ].getElementsByTagName( 'input' );                    
+                        clearButton =   element.children().children().next().children().children()[ 0 ].getElementsByTagName( 'button' );
+                    }
+                }
+               
+                // Get checkboxes
+                if ( !$scope.helperStatus.all && !$scope.helperStatus.none && !$scope.helperStatus.reset && !$scope.helperStatus.filter ) {
+                    checkboxes = element.children().children().next()[ 0 ].getElementsByTagName( 'input' );
+                }
+                else {
+                    checkboxes = element.children().children().next().children().next()[ 0 ].getElementsByTagName( 'input' );
+                }
+
+                // Push them into global array formElements[] 
+                for ( var i = 0; i < selectButtons.length ; i++ )   { formElements.push( selectButtons[ i ] );  }
+                for ( var i = 0; i < inputField.length ; i++ )      { formElements.push( inputField[ i ] );     }
+                for ( var i = 0; i < clearButton.length ; i++ )     { formElements.push( clearButton[ i ] );    }
+                for ( var i = 0; i < checkboxes.length ; i++ )      { formElements.push( checkboxes[ i ] );     }                                
+            }            
+
+            // check if an item has attrs.groupProperty (be it true or false)
+            $scope.isGroupMarker = function( item , type ) {
+                if ( typeof item[ attrs.groupProperty ] !== 'undefined' && item[ attrs.groupProperty ] === type ) return true; 
+                return false;
+            }
+
+            $scope.removeGroupEndMarker = function( item ) {
+                if ( typeof item[ attrs.groupProperty ] !== 'undefined' && item[ attrs.groupProperty ] === false ) return false; 
+                return true;
+            }                       
+
+            // call this function when an item is clicked
+            $scope.syncItems = function( item, e, ng_repeat_index ) {                                      
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                // if the directive is globaly disabled, do nothing
+                if ( typeof attrs.disableProperty !== 'undefined' && item[ attrs.disableProperty ] === true ) {                                        
+                    return false;
+                }
+
+                // if item is disabled, do nothing
+                if ( typeof attrs.isDisabled !== 'undefined' && $scope.isDisabled === true ) {                        
+                    return false;
+                }                                
+
+                // if end group marker is clicked, do nothing
+                if ( typeof item[ attrs.groupProperty ] !== 'undefined' && item[ attrs.groupProperty ] === false ) {
+                    return false;
+                }                
+
+                var index = $scope.filteredModel.indexOf( item );       
+
+                // if the start of group marker is clicked ( only for multiple selection! )
+                // how it works:
+                // - if, in a group, there are items which are not selected, then they all will be selected
+                // - if, in a group, all items are selected, then they all will be de-selected                
+                if ( typeof item[ attrs.groupProperty ] !== 'undefined' && item[ attrs.groupProperty ] === true ) {                                  
+
+                    // this is only for multiple selection, so if selection mode is single, do nothing
+                    if ( typeof attrs.selectionMode !== 'undefined' && attrs.selectionMode.toUpperCase() === 'SINGLE' ) {
+                        return false;
+                    }
+                    
+                    var i,j,k;
+                    var startIndex = 0;
+                    var endIndex = $scope.filteredModel.length - 1;
+                    var tempArr = [];
+
+                    // nest level is to mark the depth of the group.
+                    // when you get into a group (start group marker), nestLevel++
+                    // when you exit a group (end group marker), nextLevel--
+                    var nestLevel = 0;                    
+
+                    // we loop throughout the filtered model (not whole model)
+                    for( i = index ; i < $scope.filteredModel.length ; i++) {  
+
+                        // this break will be executed when we're done processing each group
+                        if ( nestLevel === 0 && i > index ) 
+                        {
+                            break;
+                        }
+                    
+                        if ( typeof $scope.filteredModel[ i ][ attrs.groupProperty ] !== 'undefined' && $scope.filteredModel[ i ][ attrs.groupProperty ] === true ) {
+                            
+                            // To cater multi level grouping
+                            if ( tempArr.length === 0 ) {
+                                startIndex = i + 1; 
+                            }                            
+                            nestLevel = nestLevel + 1;
+                        }                                                
+
+                        // if group end
+                        else if ( typeof $scope.filteredModel[ i ][ attrs.groupProperty ] !== 'undefined' && $scope.filteredModel[ i ][ attrs.groupProperty ] === false ) {
+
+                            nestLevel = nestLevel - 1;                            
+
+                            // cek if all are ticked or not                            
+                            if ( tempArr.length > 0 && nestLevel === 0 ) {                                
+
+                                var allTicked = true;       
+
+                                endIndex = i;
+
+                                for ( j = 0; j < tempArr.length ; j++ ) {                                
+                                    if ( typeof tempArr[ j ][ $scope.tickProperty ] !== 'undefined' &&  tempArr[ j ][ $scope.tickProperty ] === false ) {
+                                        allTicked = false;
+                                        break;
+                                    }
+                                }                                                                                    
+
+                                if ( allTicked === true ) {
+                                    for ( j = startIndex; j <= endIndex ; j++ ) {
+                                        if ( typeof $scope.filteredModel[ j ][ attrs.groupProperty ] === 'undefined' ) {
+                                            if ( typeof attrs.disableProperty === 'undefined' ) {
+                                                $scope.filteredModel[ j ][ $scope.tickProperty ] = false;
+                                                // we refresh input model as well
+                                                inputModelIndex = $scope.filteredModel[ j ][ $scope.indexProperty ];
+                                                $scope.inputModel[ inputModelIndex ][ $scope.tickProperty ] = false;
+                                            }
+                                            else if ( $scope.filteredModel[ j ][ attrs.disableProperty ] !== true ) {
+                                                $scope.filteredModel[ j ][ $scope.tickProperty ] = false;
+                                                // we refresh input model as well
+                                                inputModelIndex = $scope.filteredModel[ j ][ $scope.indexProperty ];
+                                                $scope.inputModel[ inputModelIndex ][ $scope.tickProperty ] = false;
+                                            }
+                                        }
+                                    }                                
+                                }
+
+                                else {
+                                    for ( j = startIndex; j <= endIndex ; j++ ) {
+                                        if ( typeof $scope.filteredModel[ j ][ attrs.groupProperty ] === 'undefined' ) {
+                                            if ( typeof attrs.disableProperty === 'undefined' ) {
+                                                $scope.filteredModel[ j ][ $scope.tickProperty ] = true;                                                
+                                                // we refresh input model as well
+                                                inputModelIndex = $scope.filteredModel[ j ][ $scope.indexProperty ];
+                                                $scope.inputModel[ inputModelIndex ][ $scope.tickProperty ] = true;
+
+                                            }                                            
+                                            else if ( $scope.filteredModel[ j ][ attrs.disableProperty ] !== true ) {
+                                                $scope.filteredModel[ j ][ $scope.tickProperty ] = true;
+                                                // we refresh input model as well
+                                                inputModelIndex = $scope.filteredModel[ j ][ $scope.indexProperty ];
+                                                $scope.inputModel[ inputModelIndex ][ $scope.tickProperty ] = true;
+                                            }
+                                        }
+                                    }                                
+                                }                                                                                    
+                            }
+                        }
+            
+                        // if data
+                        else {                            
+                            tempArr.push( $scope.filteredModel[ i ] );                                                                                    
+                        }
+                    }                                 
+                }
+
+                // if an item (not group marker) is clicked
+                else {
+
+                    // If it's single selection mode
+                    if ( typeof attrs.selectionMode !== 'undefined' && attrs.selectionMode.toUpperCase() === 'SINGLE' ) {
+                        
+                        // first, set everything to false
+                        for( i=0 ; i < $scope.filteredModel.length ; i++) {                            
+                            $scope.filteredModel[ i ][ $scope.tickProperty ] = false;                            
+                        }        
+                        for( i=0 ; i < $scope.inputModel.length ; i++) {                            
+                            $scope.inputModel[ i ][ $scope.tickProperty ] = false;                            
+                        }        
+                        
+                        // then set the clicked item to true
+                        $scope.filteredModel[ index ][ $scope.tickProperty ] = true;                                                                 
+                    }   
+
+                    // Multiple
+                    else {
+                        $scope.filteredModel[ index ][ $scope.tickProperty ]   = !$scope.filteredModel[ index ][ $scope.tickProperty ];
+                    }
+
+                    // we refresh input model as well
+                    var inputModelIndex = $scope.filteredModel[ index ][ $scope.indexProperty ];                                        
+                    $scope.inputModel[ inputModelIndex ][ $scope.tickProperty ] = $scope.filteredModel[ index ][ $scope.tickProperty ];                    
+                }                                  
+
+                // we execute the callback function here
+                clickedItem = angular.copy( item );                                                    
+                if ( clickedItem !== null ) {                        
+                    $timeout( function() {
+                        delete clickedItem[ $scope.indexProperty ];
+                        delete clickedItem[ $scope.spacingProperty ];      
+                        $scope.onItemClick( { data: clickedItem } );
+                        clickedItem = null;                    
+                    }, 0 );                                                 
+                }                                    
+                
+                $scope.refreshOutputModel();
+                $scope.refreshButton();                              
+
+                // We update the index here
+                prevTabIndex = $scope.tabIndex;
+                $scope.tabIndex = ng_repeat_index + helperItemsLength;
+                                
+                // Set focus on the hidden checkbox 
+                e.target.focus();
+
+                // set & remove CSS style
+                $scope.removeFocusStyle( prevTabIndex );
+                $scope.setFocusStyle( $scope.tabIndex );
+
+                if ( typeof attrs.selectionMode !== 'undefined' && attrs.selectionMode.toUpperCase() === 'SINGLE' ) {
+                    // on single selection mode, we then hide the checkbox layer
+                    $scope.toggleCheckboxes( e );       
+                }
+            }     
+
+            // update $scope.outputModel
+            $scope.refreshOutputModel = function() {            
+                
+                $scope.outputModel  = [];
+                var 
+                    outputProps     = [],
+                    tempObj         = {};
+
+                // v4.0.0
+                if ( typeof attrs.outputProperties !== 'undefined' ) {                    
+                    outputProps = attrs.outputProperties.split(' ');                
+                    angular.forEach( $scope.inputModel, function( value, key ) {                    
+                        if ( 
+                            typeof value !== 'undefined' 
+                            && typeof value[ attrs.groupProperty ] === 'undefined' 
+                            && value[ $scope.tickProperty ] === true 
+                        ) {
+                            tempObj         = {};
+                            angular.forEach( value, function( value1, key1 ) {                                
+                                if ( outputProps.indexOf( key1 ) > -1 ) {                                                                         
+                                    tempObj[ key1 ] = value1;                                    
+                                }
+                            });
+                            var index = $scope.outputModel.push( tempObj );                                                               
+                            delete $scope.outputModel[ index - 1 ][ $scope.indexProperty ];
+                            delete $scope.outputModel[ index - 1 ][ $scope.spacingProperty ];                                      
+                        }
+                    });         
+                }
+                else {
+                    angular.forEach( $scope.inputModel, function( value, key ) {                    
+                        if ( 
+                            typeof value !== 'undefined' 
+                            && typeof value[ attrs.groupProperty ] === 'undefined' 
+                            && value[ $scope.tickProperty ] === true 
+                        ) {
+                            var temp = angular.copy( value );
+                            var index = $scope.outputModel.push( temp );                                                               
+                            delete $scope.outputModel[ index - 1 ][ $scope.indexProperty ];
+                            delete $scope.outputModel[ index - 1 ][ $scope.spacingProperty ];                                      
+                        }
+                    });         
+                }
+            }
+
+            // refresh button label
+            $scope.refreshButton = function() {
+
+                $scope.varButtonLabel   = '';                
+                var ctr                 = 0;                  
+
+                // refresh button label...
+                if ( $scope.outputModel.length === 0 ) {
+                    // https://github.com/isteven/angular-multi-select/pull/19                    
+                    $scope.varButtonLabel = $scope.lang.nothingSelected;
+                }
+                else {                
+                    var tempMaxLabels = $scope.outputModel.length;
+                    if ( typeof attrs.maxLabels !== 'undefined' && attrs.maxLabels !== '' ) {
+                        tempMaxLabels = attrs.maxLabels;
+                    }
+
+                    // if max amount of labels displayed..
+                    if ( $scope.outputModel.length > tempMaxLabels ) {
+                        $scope.more = true;
+                    }
+                    else {
+                        $scope.more = false;
+                    }                
+                    
+                    angular.forEach( $scope.inputModel, function( value, key ) {
+                        if ( typeof value !== 'undefined' && value[ attrs.tickProperty ] === true ) {                        
+                            if ( ctr < tempMaxLabels ) {                            
+                                $scope.varButtonLabel += ( $scope.varButtonLabel.length > 0 ? '</div>, <div class="buttonLabel">' : '<div class="buttonLabel">') + $scope.writeLabel( value, 'buttonLabel' );
+                            }
+                            ctr++;
+                        }
+                    });                
+
+                    if ( $scope.more === true ) {
+                        // https://github.com/isteven/angular-multi-select/pull/16
+                        if (tempMaxLabels > 0) {
+                            $scope.varButtonLabel += ', ... ';
+                        }
+                        $scope.varButtonLabel += '(' + $scope.outputModel.length + ')';                        
+                    }
+                }
+                $scope.varButtonLabel = $sce.trustAsHtml( $scope.varButtonLabel + '<span class="caret"></span>' );                
+            }
+
+            // Check if a checkbox is disabled or enabled. It will check the granular control (disableProperty) and global control (isDisabled)
+            // Take note that the granular control has higher priority.
+            $scope.itemIsDisabled = function( item ) {
+                
+                if ( typeof attrs.disableProperty !== 'undefined' && item[ attrs.disableProperty ] === true ) {                                        
+                    return true;
+                }
+                else {             
+                    if ( $scope.isDisabled === true ) {                        
+                        return true;
+                    }
+                    else {
+                        return false;
+                    }
+                }
+                
+            }
+
+            // A simple function to parse the item label settings. Used on the buttons and checkbox labels.
+            $scope.writeLabel = function( item, type ) {
+                
+                // type is either 'itemLabel' or 'buttonLabel'
+                var temp    = attrs[ type ].split( ' ' );                    
+                var label   = '';                
+
+                angular.forEach( temp, function( value, key ) {                    
+                    item[ value ] && ( label += '&nbsp;' + value.split( '.' ).reduce( function( prev, current ) {
+                        return prev[ current ]; 
+                    }, item ));        
+                });
+                
+                if ( type.toUpperCase() === 'BUTTONLABEL' ) {                    
+                    return label;
+                }
+                return $sce.trustAsHtml( label );
+            }                                
+
+            // UI operations to show/hide checkboxes based on click event..
+            $scope.toggleCheckboxes = function( e ) {                                    
+                
+                // We grab the button
+                var clickedEl = element.children()[0];
+
+                // Just to make sure.. had a bug where key events were recorded twice
+                angular.element( document ).off( 'click', $scope.externalClickListener );
+                angular.element( document ).off( 'keydown', $scope.keyboardListener );        
+
+                // The idea below was taken from another multi-select directive - https://github.com/amitava82/angular-multiselect 
+                // His version is awesome if you need a more simple multi-select approach.                                
+
+                // close
+                if ( angular.element( checkBoxLayer ).hasClass( 'show' )) {                         
+
+                    angular.element( checkBoxLayer ).removeClass( 'show' );                    
+                    angular.element( clickedEl ).removeClass( 'buttonClicked' );                    
+                    angular.element( document ).off( 'click', $scope.externalClickListener );
+                    angular.element( document ).off( 'keydown', $scope.keyboardListener );                                    
+
+                    // clear the focused element;
+                    $scope.removeFocusStyle( $scope.tabIndex );
+                    if ( typeof formElements[ $scope.tabIndex ] !== 'undefined' ) {
+                        formElements[ $scope.tabIndex ].blur();
+                    }
+
+                    // close callback
+                    $timeout( function() {
+                        $scope.onClose();
+                    }, 0 );
+
+                    // set focus on button again
+                    element.children().children()[ 0 ].focus();
+                } 
+                // open
+                else                 
+                {    
+                    // clear filter
+                    $scope.inputLabel.labelFilter = '';                
+                    $scope.updateFilter();                                
+
+                    helperItems = [];
+                    helperItemsLength = 0;
+
+                    angular.element( checkBoxLayer ).addClass( 'show' );
+                    angular.element( clickedEl ).addClass( 'buttonClicked' );       
+
+                    // Attach change event listener on the input filter. 
+                    // We need this because ng-change is apparently not an event listener.                    
+                    angular.element( document ).on( 'click', $scope.externalClickListener );
+                    angular.element( document ).on( 'keydown', $scope.keyboardListener );  
+
+                    // to get the initial tab index, depending on how many helper elements we have. 
+                    // priority is to always focus it on the input filter                                                                
+                    $scope.getFormElements();
+                    $scope.tabIndex = 0;
+
+                    var helperContainer = angular.element( element[ 0 ].querySelector( '.helperContainer' ) )[0];                
+                    
+                    if ( typeof helperContainer !== 'undefined' ) {
+                        for ( var i = 0; i < helperContainer.getElementsByTagName( 'BUTTON' ).length ; i++ ) {
+                            helperItems[ i ] = helperContainer.getElementsByTagName( 'BUTTON' )[ i ];
+                        }
+                        helperItemsLength = helperItems.length + helperContainer.getElementsByTagName( 'INPUT' ).length;
+                    }
+                    
+                    // focus on the filter element on open. 
+                    if ( element[ 0 ].querySelector( '.inputFilter' ) ) {                        
+                        element[ 0 ].querySelector( '.inputFilter' ).focus();    
+                        $scope.tabIndex = $scope.tabIndex + helperItemsLength - 2;
+                        // blur button in vain
+                        angular.element( element ).children()[ 0 ].blur();
+                    }
+                    // if there's no filter then just focus on the first checkbox item
+                    else {                  
+                        if ( !$scope.isDisabled ) {                        
+                            $scope.tabIndex = $scope.tabIndex + helperItemsLength;
+                            if ( $scope.inputModel.length > 0 ) {
+                                formElements[ $scope.tabIndex ].focus();
+                                $scope.setFocusStyle( $scope.tabIndex );
+                                // blur button in vain
+                                angular.element( element ).children()[ 0 ].blur();
+                            }                            
+                        }
+                    }                          
+
+                    // open callback
+                    $scope.onOpen();
+                }                            
+            }
+            
+            // handle clicks outside the button / multi select layer
+            $scope.externalClickListener = function( e ) {                   
+
+                var targetsArr = element.find( e.target.tagName );
+                for (var i = 0; i < targetsArr.length; i++) {                                        
+                    if ( e.target == targetsArr[i] ) {
+                        return;
+                    }
+                }
+
+                angular.element( checkBoxLayer.previousSibling ).removeClass( 'buttonClicked' );                    
+                angular.element( checkBoxLayer ).removeClass( 'show' );
+                angular.element( document ).off( 'click', $scope.externalClickListener ); 
+                angular.element( document ).off( 'keydown', $scope.keyboardListener );                
+                
+                // close callback                
+                $timeout( function() {
+                    $scope.onClose();
+                }, 0 );
+
+                // set focus on button again
+                element.children().children()[ 0 ].focus();
+            }
+   
+            // select All / select None / reset buttons
+            $scope.select = function( type, e ) {
+
+                var helperIndex = helperItems.indexOf( e.target );
+                $scope.tabIndex = helperIndex;
+
+                switch( type.toUpperCase() ) {
+                    case 'ALL':
+                        angular.forEach( $scope.filteredModel, function( value, key ) {                            
+                            if ( typeof value !== 'undefined' && value[ attrs.disableProperty ] !== true ) {                                
+                                if ( typeof value[ attrs.groupProperty ] === 'undefined' ) {                                
+                                    value[ $scope.tickProperty ] = true;
+                                }
+                            }
+                        });                            
+                        $scope.refreshOutputModel();                                    
+                        $scope.refreshButton();                                                  
+                        $scope.onSelectAll();                                                
+                        break;
+                    case 'NONE':
+                        angular.forEach( $scope.filteredModel, function( value, key ) {
+                            if ( typeof value !== 'undefined' && value[ attrs.disableProperty ] !== true ) {                        
+                                if ( typeof value[ attrs.groupProperty ] === 'undefined' ) {                                
+                                    value[ $scope.tickProperty ] = false;
+                                }
+                            }
+                        });               
+                        $scope.refreshOutputModel();                                    
+                        $scope.refreshButton();                                                                          
+                        $scope.onSelectNone();                        
+                        break;
+                    case 'RESET':            
+                        angular.forEach( $scope.filteredModel, function( value, key ) {                            
+                            if ( typeof value[ attrs.groupProperty ] === 'undefined' && typeof value !== 'undefined' && value[ attrs.disableProperty ] !== true ) {                        
+                                var temp = value[ $scope.indexProperty ];                                
+                                value[ $scope.tickProperty ] = $scope.backUp[ temp ][ $scope.tickProperty ];
+                            }
+                        });               
+                        $scope.refreshOutputModel();                                    
+                        $scope.refreshButton();                                                                          
+                        $scope.onReset();                        
+                        break;
+                    case 'CLEAR':
+                        $scope.tabIndex = $scope.tabIndex + 1;
+                        $scope.onClear();    
+                        break;
+                    case 'FILTER':                        
+                        $scope.tabIndex = helperItems.length - 1;
+                        break;
+                    default:                        
+                }                                                                                 
+            }            
+
+            // just to create a random variable name                
+            function genRandomString( length ) {                
+                var possible    = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+                var temp        = '';
+                for( var i=0; i < length; i++ ) {
+                     temp += possible.charAt( Math.floor( Math.random() * possible.length ));
+                }
+                return temp;
+            }
+
+            // count leading spaces
+            $scope.prepareGrouping = function() {
+                var spacing     = 0;                                                
+                angular.forEach( $scope.filteredModel, function( value, key ) {
+                    value[ $scope.spacingProperty ] = spacing;                    
+                    if ( value[ attrs.groupProperty ] === true ) {
+                        spacing+=2;
+                    }                    
+                    else if ( value[ attrs.groupProperty ] === false ) {
+                        spacing-=2;
+                    }                 
+                });
+            }
+
+            // prepare original index
+            $scope.prepareIndex = function() {
+                var ctr = 0;
+                angular.forEach( $scope.filteredModel, function( value, key ) {
+                    value[ $scope.indexProperty ] = ctr;
+                    ctr++;
+                });
+            }
+
+            // navigate using up and down arrow
+            $scope.keyboardListener = function( e ) { 
+                
+                var key = e.keyCode ? e.keyCode : e.which;      
+                var isNavigationKey = false;                                                
+
+                // ESC key (close)
+                if ( key === 27 ) {
+                    e.preventDefault();                   
+                    e.stopPropagation();
+                    $scope.toggleCheckboxes( e );
+                }                    
+                
+                
+                // next element ( tab, down & right key )                    
+                else if ( key === 40 || key === 39 || ( !e.shiftKey && key == 9 ) ) {                    
+                    
+                    isNavigationKey = true;
+                    prevTabIndex = $scope.tabIndex; 
+                    $scope.tabIndex++;                         
+                    if ( $scope.tabIndex > formElements.length - 1 ) {
+                        $scope.tabIndex = 0;
+                        prevTabIndex = formElements.length - 1; 
+                    }                                                            
+                    while ( formElements[ $scope.tabIndex ].disabled === true ) {
+                        $scope.tabIndex++;
+                        if ( $scope.tabIndex > formElements.length - 1 ) {
+                            $scope.tabIndex = 0;                            
+                        }                                                                                    
+                        if ( $scope.tabIndex === prevTabIndex ) {
+                            break;
+                        }
+                    }              
+                }
+                  
+                // prev element ( shift+tab, up & left key )
+                else if ( key === 38 || key === 37 || ( e.shiftKey && key == 9 ) ) { 
+                    isNavigationKey = true;
+                    prevTabIndex = $scope.tabIndex; 
+                    $scope.tabIndex--;                              
+                    if ( $scope.tabIndex < 0 ) {
+                        $scope.tabIndex = formElements.length - 1;
+                        prevTabIndex = 0;
+                    }                                         
+                    while ( formElements[ $scope.tabIndex ].disabled === true ) {                        
+                        $scope.tabIndex--;
+                        if ( $scope.tabIndex === prevTabIndex ) {
+                            break;
+                        }                                            
+                        if ( $scope.tabIndex < 0 ) {
+                            $scope.tabIndex = formElements.length - 1;
+                        }                             
+                    }                                                     
+                }                    
+
+                if ( isNavigationKey === true ) {                                         
+                    
+                    e.preventDefault();
+
+                    // set focus on the checkbox                    
+                    formElements[ $scope.tabIndex ].focus();    
+                    var actEl = document.activeElement;                     
+                    
+                    if ( actEl.type.toUpperCase() === 'CHECKBOX' ) {                                                   
+                        $scope.setFocusStyle( $scope.tabIndex );
+                        $scope.removeFocusStyle( prevTabIndex );
+                    }                    
+                    else {
+                        $scope.removeFocusStyle( prevTabIndex );
+                        $scope.removeFocusStyle( helperItemsLength );
+                        $scope.removeFocusStyle( formElements.length - 1 );
+                    } 
+                }                
+
+                isNavigationKey = false;
+            }
+
+            // set (add) CSS style on selected row
+            $scope.setFocusStyle = function( tabIndex ) {                                
+                angular.element( formElements[ tabIndex ] ).parent().parent().parent().addClass( 'multiSelectFocus' );                        
+            }
+
+            // remove CSS style on selected row
+            $scope.removeFocusStyle = function( tabIndex ) {                
+                angular.element( formElements[ tabIndex ] ).parent().parent().parent().removeClass( 'multiSelectFocus' );
+            }
+
+            /*********************
+             *********************             
+             *
+             * 1) Initializations
+             *
+             *********************
+             *********************/
+
+            // attrs to $scope - attrs-$scope - attrs - $scope
+            // Copy some properties that will be used on the template. They need to be in the $scope.
+            $scope.groupProperty    = attrs.groupProperty;   
+            $scope.tickProperty     = attrs.tickProperty;
+            $scope.directiveId      = attrs.directiveId;
+            
+            // Unfortunately I need to add these grouping properties into the input model
+            var tempStr = genRandomString( 5 );
+            $scope.indexProperty = 'idx_' + tempStr;
+            $scope.spacingProperty = 'spc_' + tempStr;         
+
+            // set orientation css            
+            if ( typeof attrs.orientation !== 'undefined' ) {
+
+                if ( attrs.orientation.toUpperCase() === 'HORIZONTAL' ) {                    
+                    $scope.orientationH = true;
+                    $scope.orientationV = false;
+                }
+                else 
+                {
+                    $scope.orientationH = false;
+                    $scope.orientationV = true;
+                }
+            }            
+
+            // get elements required for DOM operation
+            checkBoxLayer = element.children().children().next()[0];
+
+            // set max-height property if provided
+            if ( typeof attrs.maxHeight !== 'undefined' ) {                
+                var layer = element.children().children().children()[0];
+                angular.element( layer ).attr( "style", "height:" + attrs.maxHeight + "; overflow-y:scroll;" );                                
+            }
+
+            // some flags for easier checking            
+            for ( var property in $scope.helperStatus ) {
+                if ( $scope.helperStatus.hasOwnProperty( property )) {                    
+                    if ( 
+                        typeof attrs.helperElements !== 'undefined' 
+                        && attrs.helperElements.toUpperCase().indexOf( property.toUpperCase() ) === -1 
+                    ) {
+                        $scope.helperStatus[ property ] = false;
+                    }
+                }
+            }
+            if ( typeof attrs.selectionMode !== 'undefined' && attrs.selectionMode.toUpperCase() === 'SINGLE' )  {
+                $scope.helperStatus[ 'all' ] = false;
+                $scope.helperStatus[ 'none' ] = false;
+            }
+
+            // helper button icons.. I guess you can use html tag here if you want to. 
+            $scope.icon        = {};            
+            $scope.icon.selectAll  = '&#10003;';    // a tick icon
+            $scope.icon.selectNone = '&times;';     // x icon
+            $scope.icon.reset      = '&#8630;';     // undo icon            
+            // this one is for the selected items
+            $scope.icon.tickMark   = '&#10003;';    // a tick icon 
+
+            // configurable button labels                       
+            if ( typeof attrs.translation !== 'undefined' ) {
+                $scope.lang.selectAll       = $sce.trustAsHtml( $scope.icon.selectAll  + '&nbsp;&nbsp;' + $scope.translation.selectAll );
+                $scope.lang.selectNone      = $sce.trustAsHtml( $scope.icon.selectNone + '&nbsp;&nbsp;' + $scope.translation.selectNone );
+                $scope.lang.reset           = $sce.trustAsHtml( $scope.icon.reset      + '&nbsp;&nbsp;' + $scope.translation.reset );
+                $scope.lang.search          = $scope.translation.search;                
+                $scope.lang.nothingSelected = $sce.trustAsHtml( $scope.translation.nothingSelected );                
+            }
+            else {
+                $scope.lang.selectAll       = $sce.trustAsHtml( $scope.icon.selectAll  + '&nbsp;&nbsp;Select All' );                
+                $scope.lang.selectNone      = $sce.trustAsHtml( $scope.icon.selectNone + '&nbsp;&nbsp;Select None' );
+                $scope.lang.reset           = $sce.trustAsHtml( $scope.icon.reset      + '&nbsp;&nbsp;Reset' );
+                $scope.lang.search          = 'Search...';
+                $scope.lang.nothingSelected = 'None Selected';                
+            }
+            $scope.icon.tickMark = $sce.trustAsHtml( $scope.icon.tickMark );
+                
+            // min length of keyword to trigger the filter function
+            if ( typeof attrs.MinSearchLength !== 'undefined' && parseInt( attrs.MinSearchLength ) > 0 ) {
+                vMinSearchLength = Math.floor( parseInt( attrs.MinSearchLength ) );
+            }
+
+            /*******************************************************
+             *******************************************************
+             *
+             * 2) Logic starts here, initiated by watch 1 & watch 2
+             *
+             *******************************************************
+             *******************************************************/
+            
+            // watch1, for changes in input model property
+            // updates multi-select when user select/deselect a single checkbox programatically
+            // https://github.com/isteven/angular-multi-select/issues/8            
+            $scope.$watch( 'inputModel' , function( newVal ) {                                 
+                if ( newVal ) {                            
+                    $scope.refreshOutputModel();                                    
+                    $scope.refreshButton();                                                  
+                }
+            }, true );
+            
+            // watch2 for changes in input model as a whole
+            // this on updates the multi-select when a user load a whole new input-model. We also update the $scope.backUp variable
+            $scope.$watch( 'inputModel' , function( newVal ) {  
+                if ( newVal ) {
+                    $scope.backUp = angular.copy( $scope.inputModel );    
+                    $scope.updateFilter();
+                    $scope.prepareGrouping();
+                    $scope.prepareIndex();                                                              
+                    $scope.refreshOutputModel();                
+                    $scope.refreshButton();                                                                                                                 
+                }
+            });                        
+
+            // watch for changes in directive state (disabled or enabled)
+            $scope.$watch( 'isDisabled' , function( newVal ) {         
+                $scope.isDisabled = newVal;                               
+            });            
+            
+            // this is for touch enabled devices. We don't want to hide checkboxes on scroll. 
+            var onTouchStart = function( e ) { 
+            	$scope.$apply( function() {
+            		$scope.scrolled = false;
+            	}); 
+            };
+            angular.element( document ).bind( 'touchstart', onTouchStart);
+            var onTouchMove = function( e ) { 
+            	$scope.$apply( function() {
+            		$scope.scrolled = true;                
+            	});
+            };
+            angular.element( document ).bind( 'touchmove', onTouchMove);            
+
+            // unbind document events to prevent memory leaks
+            $scope.$on( '$destroy', function () {
+			    angular.element( document ).unbind( 'touchstart', onTouchStart);
+            	angular.element( document ).unbind( 'touchmove', onTouchMove);
+            });
+        }
+    }
+}]).run( [ '$templateCache' , function( $templateCache ) {
+    var template = 
+        '<span class="multiSelect inlineBlock">' +
+            // main button
+            '<button id="{{directiveId}}" type="button"' +                
+                'ng-click="toggleCheckboxes( $event ); refreshSelectedItems(); refreshButton(); prepareGrouping; prepareIndex();"' +
+                'ng-bind-html="varButtonLabel"' +
+                'ng-disabled="disable-button"' +
+            '>' +
+            '</button>' +
+            // overlay layer
+            '<div class="checkboxLayer">' +
+                // container of the helper elements
+                '<div class="helperContainer" ng-if="helperStatus.filter || helperStatus.all || helperStatus.none || helperStatus.reset ">' +
+                    // container of the first 3 buttons, select all, none and reset
+                    '<div class="line" ng-if="helperStatus.all || helperStatus.none || helperStatus.reset ">' +
+                        // select all
+                        '<button type="button" class="helperButton"' +
+                            'ng-disabled="isDisabled"' + 
+                            'ng-if="helperStatus.all"' +
+                            'ng-click="select( \'all\', $event );"' +
+                            'ng-bind-html="lang.selectAll">' +
+                        '</button>'+
+                        // select none
+                        '<button type="button" class="helperButton"' +
+                            'ng-disabled="isDisabled"' + 
+                            'ng-if="helperStatus.none"' +
+                            'ng-click="select( \'none\', $event );"' +
+                            'ng-bind-html="lang.selectNone">' +
+                        '</button>'+
+                        // reset
+                        '<button type="button" class="helperButton reset"' +
+                            'ng-disabled="isDisabled"' + 
+                            'ng-if="helperStatus.reset"' +
+                            'ng-click="select( \'reset\', $event );"' +
+                            'ng-bind-html="lang.reset">'+
+                        '</button>' +
+                    '</div>' +
+                    // the search box
+                    '<div class="line" style="position:relative" ng-if="helperStatus.filter">'+
+                        // textfield                
+                        '<input placeholder="{{lang.search}}" type="text"' +
+                            'ng-click="select( \'filter\', $event )" '+
+                            'ng-model="inputLabel.labelFilter" '+
+                            'ng-change="searchChanged()" class="inputFilter"'+
+                            '/>'+
+                        // clear button
+                        '<button type="button" class="clearButton" ng-click="clearClicked( $event )" >×</button> '+
+                    '</div> '+
+                '</div> '+
+                // selection items
+                '<div class="checkBoxContainer">'+
+                    '<div '+
+                        'ng-repeat="item in filteredModel | filter:removeGroupEndMarker" class="multiSelectItem"'+
+                        'ng-class="{selected: item[ tickProperty ], horizontal: orientationH, vertical: orientationV, multiSelectGroup:item[ groupProperty ], disabled:itemIsDisabled( item )}"'+
+                        'ng-click="syncItems( item, $event, $index );" '+
+                        'ng-mouseleave="removeFocusStyle( tabIndex );"> '+
+                        // this is the spacing for grouped items
+                        '<div class="acol" ng-if="item[ spacingProperty ] > 0" ng-repeat="i in numberToArray( item[ spacingProperty ] ) track by $index">'+                        
+                    '</div>  '+        
+                    '<div class="acol">'+
+                        '<label>'+                                
+                            // input, so that it can accept focus on keyboard click
+                            '<input class="checkbox focusable" type="checkbox" '+
+                                'ng-disabled="itemIsDisabled( item )" '+
+                                'ng-checked="item[ tickProperty ]" '+
+                                'ng-click="syncItems( item, $event, $index )" />'+
+                            // item label using ng-bind-hteml
+                            '<span '+
+                                'ng-class="{disabled:itemIsDisabled( item )}" '+
+                                'ng-bind-html="writeLabel( item, \'itemLabel\' )">'+
+                            '</span>'+
+                        '</label>'+
+                    '</div>'+
+                    // the tick/check mark
+                    '<span class="tickMark" ng-if="item[ groupProperty ] !== true && item[ tickProperty ] === true" ng-bind-html="icon.tickMark"></span>'+
+                '</div>'+
+            '</div>'+
+        '</div>'+
+    '</span>';
+	$templateCache.put( 'isteven-multi-select.htm' , template );
+}]); 
+
+},{}],19:[function(require,module,exports){
 (function (global){
 /**
  * @license
@@ -95208,7 +97044,7 @@ function coerce(val) {
 }.call(this));
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],17:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 /**
  * Helpers.
  */
@@ -95335,37 +97171,51 @@ function plural(ms, n, name) {
   return Math.ceil(ms / n) + ' ' + name + 's';
 }
 
-},{}],18:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 require('angular');
 require('angular-ui-router');
 require('angular-aria');
 require('angular-animate');
+require('angular-sanitize')
 require('angular-material');
+require('../../node_modules/isteven-angular-multiselect/isteven-multi-select.js')
 require('angular-google-maps');
 require('angular-simple-logger');
 require('angular-local-storage');
 require('lodash');
-require('./components/home/home.js');
 require('./components/about/about.js');
-require('./components/home/map.controller.js');
-require('./components/home/map.factory.js');
+require('./components/map/map.controller.js');
+require('./components/map/map.factory.js');
 
 
-var app = angular.module('myApp', ['ui.router','ngMaterial','LocalStorageModule','myApp.home','myApp.about'])
+var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule','myApp.about']);
 
-app.config(function($stateProvider, $urlRouterProvider) {
+app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
+
+	uiGmapGoogleMapApiProvider.configure({
+			key: 'AIzaSyB6e7CrrfD4O0AfRSOK0nkHWdpZmQj-98k',
+			v: '3.30',
+			libraries: 'weather,geometry,visualization,places'
+	});
 
 	$urlRouterProvider.otherwise("/");
 
 	$stateProvider
-	.state('home', {
+	.state('map', {
 		url: "/",
 		views : {
 			"" : {
-				templateUrl:"app/components/home/home.html"
+				templateUrl:"app/components/map/map.html"
 			},
-			"header@home":{
+			"header@map":{
 				templateUrl:"app/shared/header/header.html"
+			}
+		},
+		controller: 'homeCtrl',
+		resolve: {
+			zipOptions: (MapFactory) => {
+				console.log("resolving")
+				return MapFactory.getZipOptions().then(res => res)
 			}
 		}
 	})
@@ -95382,99 +97232,67 @@ app.config(function($stateProvider, $urlRouterProvider) {
 	});
 });
 
-},{"./components/about/about.js":19,"./components/home/home.js":20,"./components/home/map.controller.js":21,"./components/home/map.factory.js":22,"angular":13,"angular-animate":2,"angular-aria":4,"angular-google-maps":5,"angular-local-storage":6,"angular-material":9,"angular-simple-logger":10,"angular-ui-router":11,"lodash":16}],19:[function(require,module,exports){
+},{"../../node_modules/isteven-angular-multiselect/isteven-multi-select.js":18,"./components/about/about.js":22,"./components/map/map.controller.js":23,"./components/map/map.factory.js":24,"angular":15,"angular-animate":2,"angular-aria":4,"angular-google-maps":5,"angular-local-storage":6,"angular-material":9,"angular-sanitize":11,"angular-simple-logger":12,"angular-ui-router":13,"lodash":19}],22:[function(require,module,exports){
 angular.module('myApp.about', [])
 .controller('aboutCtrl',[function(){
 	this.aboutText = 'Built by Michael Bushoy';
 }]);
 
-},{}],20:[function(require,module,exports){
-angular.module('myApp.home', ['uiGmapgoogle-maps'])
-.config(function(uiGmapGoogleMapApiProvider) {
-    uiGmapGoogleMapApiProvider.configure({
-        key: 'AIzaSyB6e7CrrfD4O0AfRSOK0nkHWdpZmQj-98k',
-        v: '3.30',
-        libraries: 'weather,geometry,visualization,places'
-    });
-})
+},{}],23:[function(require,module,exports){
 
-},{}],21:[function(require,module,exports){
-angular.module('myApp.home')
-.controller('homeCtrl', function($scope, uiGmapGoogleMapApi, $http, MapFactory, localStorageService) {
+angular.module('myApp').controller('homeCtrl', function($scope, uiGmapGoogleMapApi, $http, MapFactory, localStorageService) {
+	console.log($stateParams)
+  MapFactory.getZipOptions().then(res => $scope.zipOptions=res)
+
+  // $scope.zipOptions=$stateParams.zipOptions;
+
+	angular.extend($scope, {
+		map: {
+			center: {latitude: 40.7, longitude: -74 },
+			zoom: 11,
+			scrollwheel: false
+		}
+	})
+
 		uiGmapGoogleMapApi.then(function(maps) {
   		maps.visualRefresh = true;
-      // $scope.defaultBounds = new google.maps.LatLngBounds(
-      //   new google.maps.LatLng(40.9, -74.3),
-      //   new google.maps.LatLng(40.5, -73.7));
-      //
-      //   $scope.map.bounds = {
-      //         northeast: {
-      //           latitude:$scope.defaultBounds.getNorthEast().lat(),
-      //           longitude:$scope.defaultBounds.getNorthEast().lng()
-      //         },
-      //         southwest: {
-      //           latitude:$scope.defaultBounds.getSouthWest().lat(),
-      //           longitude:-$scope.defaultBounds.getSouthWest().lng()
-      //         }
-      //       }
-      //       $scope.searchbox.options.bounds = new google.maps.LatLngBounds($scope.defaultBounds.getNorthEast(), $scope.defaultBounds.getSouthWest());
       $scope.polygons=[];
       let lastZipArr=localStorageService.get('lastSubmit');
-      if (lastZipArr)
-        lastZipArr.forEach(el => $scope.polygons.push(localStorageService.get(el)))
+      if (lastZipArr) //persist refresh
+        lastZipArr.forEach(el => $scope.polygons.push(localStorageService.get(el.zip)))
+		});
 
-
-    });
-
-    angular.extend($scope, {
-      map: {
-        center: {latitude: 40.7, longitude: -74 },
-        zoom: 12
-      },
-      searchbox: {
-        template:'searchbox.tpl.html',
-        events: {
-          places_changed: function (autocomplete) {
-            $scope.$apply(console.log("in the apply!"))
-          }
-        },
-        position: 'TOP_CENTER',
-        options: {
-          autocomplete: true,
-          types: ['(regions)'],
-          componentRestrictions: {country: 'us'}
-        }
-    }
-  })
       $scope.clearPolygons = function() {
         $scope.polygons = [];
+        $scope.zipSelections=[];
         localStorageService.set('lastSubmit',[])
       }
 
       $scope.generatePolygons = function() {
+        //TODO: Error on not found
         $scope.polygons=[];
-        zipArr=$scope.zipEntry.split(',');
-        localStorageService.set('lastSubmit',zipArr)
         var nonLocalArr=[];
-        zipArr.forEach((el,idx) => {
-          if (localStorageService.get(el)) {
-  					$scope.polygons.push(localStorageService.get(el));
+        $scope.zipSelections = $scope.zipSelections ? $scope.zipSelections : [];
+				localStorageService.set('lastSubmit',$scope.zipSelections)
+        $scope.zipSelections.forEach((el,idx) => {
+          if (localStorageService.get(el.zip)) {
+  					$scope.polygons.push(localStorageService.get(el.zip));
           } else {
-            nonLocalArr.push(el)
+            nonLocalArr.push(el.zip)
           }
         })
         console.log("nonlocal",nonLocalArr)
         if (nonLocalArr.length) {
           MapFactory.getZipData(nonLocalArr)
           .then(function(res) {
-            console.log(res)
+            console.log("getdatafactorycall",res)
             res.forEach((el,idx) => {
-              $scope.polygons.push({
+              let poly={
                     id: nonLocalArr[idx],
                     path: el,
                     stroke: {
                         color: '#6060FB',
-                        weight: 3
+                        weight: 2
                     },
                     editable: false,
                     draggable: false,
@@ -95482,52 +97300,59 @@ angular.module('myApp.home')
                     visible: true,
                     fill: {
                         color: '#ff0000',
-                        opacity: 0.8
+                        opacity: 0.7
                     }
-              })
-              localStorageService.set(nonLocalArr[idx],$scope.polygons[$scope.polygons.length-1]);
+              }
+              $scope.polygons.push(poly)
+              localStorageService.set(nonLocalArr[idx],poly);
             })
-        // $scope.map.center = res[0];
         });
     }
   }
 
 });
 
-},{}],22:[function(require,module,exports){
-angular.module('myApp.home').factory('MapFactory', function($http) {
+},{}],24:[function(require,module,exports){
+angular.module('myApp').factory('MapFactory', function($http) {
 
   var obj={};
 
-  obj.getZipData = function(allZips) {
+  obj.getZipData = (allZips) => {
     return $http.get("/assets/state.json")
-    .then(function(zips) {
+    .then((zips) => {
       let polyArr=[];
-      allZips.forEach(function(oneZip) {
-        zips.data.features.forEach(function(el) {
+      allZips.forEach((oneZip) => {
+        zips.data.features.forEach((el) => {
           if (el.properties.ZCTA5CE10 === oneZip)
             polyArr.push(el.geometry.coordinates)
         })
       })
       return polyArr;
     })
-    .then(function(matchedZips) {
-      console.log(matchedZips)
+    .then((matchedZips) => {
+
       //TODO: refactor
       function coordCleaner(mapPath) {
         mapPath=mapPath.reduce((prev,curr) => prev.concat(curr));
-        if (mapPath[0].length!=2) mapPath=mapPath.reduce((prev,curr) => prev.concat(curr));
-        console.log(mapPath)
-        return mapPath.map(function(el) {
-           return {latitude: el[1],longitude: el[0]};
-        })
-    }
-
-    return matchedZips.map(function(each) {
-
-      return coordCleaner(each);
+        if (mapPath[0].length!==2) mapPath=mapPath.reduce((prev,curr) => prev.concat(curr));
+        return mapPath.map((el) => ({latitude: el[1],longitude: el[0]})
+      )}
+      return matchedZips.map((each) => coordCleaner(each))
     })
+    .catch((err) => console.log(err))
+  }
 
+  obj.getZipOptions = () => {
+    return $http.get("/assets/nygeo.json")
+    .then((zips) => {
+      let zipOptions=[];
+      let counties=["New York County", "Kings County", "Richmond County", "Bronx County","Queens County"];
+      zips.data.features.forEach(el => {
+         if (counties.indexOf(el.properties.county) > -1)
+          zipOptions.push({zip: el.id, county: el.properties.county})
+      })
+      console.log("getting zip options!")
+      return zipOptions;
     })
   }
 
@@ -95536,4 +97361,4 @@ angular.module('myApp.home').factory('MapFactory', function($http) {
 
 })
 
-},{}]},{},[18]);
+},{}]},{},[21]);

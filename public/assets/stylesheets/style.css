@@ -1,11 +1,12 @@
 body h1 {
   color: #3372D9; }
 
-#map {
-  height: 400px;
-  margin: 20px 0;
+#map_canvas {
+  height: 80%;
+  width: 80%;
   border-radius: 5px;
   border: 1px solid silver; }
 
 .angular-google-map-container {
-  height: 400px; }
+  height: 100%;
+  width: 100%; }
