@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "main": "\u001b ",
   "scripts": {
-    "build": "gulp"
+    "build": "gulp",
+    "start": "node public/main.js"
   },
   "repository": {
     "type": "git",
     "url": " "
   },
-  "author": "Rahil Shaikh",
   "license": "MIT",
   "devDependencies": {
     "browser-sync": "^2.9.11",
