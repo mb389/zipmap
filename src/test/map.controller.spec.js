@@ -1,46 +1,45 @@
-// describe('app.avengers', function() {
-//     var controller;
-//
-//     beforeEach(function() {
-//         module('app', function($provide) {
-//             specHelper.fakeRouteProvider($provide);
-//             specHelper.fakeLogger($provide);
-//         });
-//         specHelper.injector(function($controller, $q, $rootScope, dataservice) {});
-//     });
-//
-//     beforeEach(function () {
-//         sinon.stub(dataservice, 'getAvengers', function() {
-//             var deferred = $q.defer();
-//             deferred.resolve(mockData.getMockAvengers());
-//             return deferred.promise;
-//         });
-//
-//         sinon.stub(dataservice, 'ready', function() {
-//             var deferred = $q.defer();
-//             deferred.resolve({test: 123});
-//             return deferred.promise;
-//         });
-//
-//         controller = $controller('Avengers');
-//         $rootScope.$apply();
-//     });
-//
-//     describe('Avengers controller', function() {
-//         it('should be created successfully', function () {
-//             expect(controller).to.be.defined;
-//         });
-//
-//         describe('after activate', function() {
-//             it('should have title of Avengers', function() {
-//                 expect(controller.title).to.equal('Avengers');
-//             });
-//
-//             it('should have 5 Avengers', function() {
-//                 expect(controller.avengers).to.have.length(5);
-//             });
-//         });
-//     });
-//
-//     specHelper.verifyNoOutstandingHttpRequests();
-// });
+
+
+describe('MapCtrl', function() {
+
+    var ctrl, scope;
+
+    beforeEach(angular.mock.module('myApp'));
+
+    beforeEach(function() {
+
+        angular.mock.inject(function($controller, $rootScope) {
+            scope = $rootScope.$new();
+            ctrl = $controller('MapCtrl', {
+                $scope: scope
+            });
+        });
+
+    });
+
+    it('should exist', function() {
+        expect(ctrl).to.not.be.undefined;
+        expect(scope.test).to.be.null;
+    });
+
+		describe('persistRefresh()', function(){
+		it('should exist', inject(function($controller){
+				expect(ctrl.persistRefresh).to.not.be.undefined;
+		}));
+	});
+
+	describe('clearPolygons()', function(){
+		it('should exist', inject(function($controller){
+				expect(ctrl.clearPolygons).to.not.be.undefined;
+		}));
+});
+
+	describe('generatePolygons()', function(){
+		it('should exist', inject(function($controller){
+				expect(ctrl.generatePolygons).to.not.be.undefined;
+		}));
+});
+
+
+
+});

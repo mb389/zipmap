@@ -52,6 +52,7 @@ module.exports = function($scope, uiGmapGoogleMapApi, MapFactory, localStorageSe
     if (nonLocalArr.length) {
       MapFactory.getZipData(nonLocalArr)
       .then((res) => {
+        if (!res.length) return;
         res.forEach((el,idx) => {
           let poly = {
             id: nonLocalArr[idx],
@@ -72,6 +73,7 @@ module.exports = function($scope, uiGmapGoogleMapApi, MapFactory, localStorageSe
           $scope.polygons.push(poly);
           localStorageService.set(nonLocalArr[idx],poly);
         })
+
       });
     }
   }
@@ -85,4 +87,5 @@ module.exports = function($scope, uiGmapGoogleMapApi, MapFactory, localStorageSe
   }
 
   }
+
 }());
