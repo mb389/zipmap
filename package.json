@@ -4,7 +4,8 @@
   "main": "\u001b ",
   "scripts": {
     "build": "gulp",
-    "start": "node public/main.js"
+    "start": "node src/app/app.js",
+    "postinstall": "gulp build"
   },
   "repository": {
     "type": "git",
