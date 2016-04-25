@@ -97189,11 +97189,11 @@ require('angular-local-storage');
 require('lodash');
 const mapCtrl = require('./components/map/map.controller.js');
 const mapFactory = require('./components/map/map.factory.js');
-const headerNav = require('./shared/header/header.js');
+const headerNav = require('./shared/header/header.directive.js');
 
-var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule']);
+angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule'])
 
-app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
+.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
 
 	uiGmapGoogleMapApiProvider.configure({
 			key: 'AIzaSyB6e7CrrfD4O0AfRSOK0nkHWdpZmQj-98k',
@@ -97212,21 +97212,28 @@ app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvide
 			allZips: (MapFactory) => MapFactory.getZipOptions().then(res => res)
 		}
 	})
-});
+})
 
-app.controller('MapCtrl', mapCtrl);
-app.factory('MapFactory', mapFactory);
-app.directive('headerNav', headerNav);
+.controller('MapCtrl', mapCtrl)
+.factory('MapFactory', mapFactory)
+.directive('headerNav', headerNav)
+
 
 }());
 
-},{"../../node_modules/isteven-angular-multiselect/isteven-multi-select.js":18,"./components/map/map.controller.js":22,"./components/map/map.factory.js":23,"./shared/header/header.js":24,"angular":15,"angular-animate":2,"angular-aria":4,"angular-google-maps":5,"angular-local-storage":6,"angular-material":9,"angular-sanitize":11,"angular-simple-logger":12,"angular-ui-router":13,"lodash":19}],22:[function(require,module,exports){
-module.exports = function($scope, uiGmapGoogleMapApi, $http, MapFactory, localStorageService, allZips) {
+},{"../../node_modules/isteven-angular-multiselect/isteven-multi-select.js":18,"./components/map/map.controller.js":22,"./components/map/map.factory.js":23,"./shared/header/header.directive.js":24,"angular":15,"angular-animate":2,"angular-aria":4,"angular-google-maps":5,"angular-local-storage":6,"angular-material":9,"angular-sanitize":11,"angular-simple-logger":12,"angular-ui-router":13,"lodash":19}],22:[function(require,module,exports){
+(function () {
 
-  // MapFactory.getZipOptions().then(res => $scope.zipOptions=res)
+'use strict';
+
+module.exports = function($scope, uiGmapGoogleMapApi, MapFactory, localStorageService, allZips) {
 
   $scope.zipOptions=allZips;
+  $scope.persistRefresh=persistRefresh;
+  $scope.clearPolygons=clearPolygons;
+  $scope.generatePolygons=generatePolygons;
 
+  ////////////
 
 	angular.extend($scope, {
 		map: {
@@ -97236,119 +97243,140 @@ module.exports = function($scope, uiGmapGoogleMapApi, $http, MapFactory, localSt
 		}
 	})
 
-		uiGmapGoogleMapApi.then(function(maps) {
-  		maps.visualRefresh = true;
-      $scope.polygons=[];
-      let lastZipArr=localStorageService.get('lastSubmit');
-      if (lastZipArr) //persist refresh
-        lastZipArr.forEach(el => $scope.polygons.push(localStorageService.get(el.zip)))
-		});
+	uiGmapGoogleMapApi.then((maps) => {
+		maps.visualRefresh = true;
+    $scope.persistRefresh();
+	});
 
-      $scope.clearPolygons = function() {
-        $scope.polygons = [];
-        $scope.zipSelections=[];
-        localStorageService.set('lastSubmit',[])
-      }
+  function persistRefresh() {
+    $scope.polygons=[];
+    let lastSubmit=localStorageService.get('lastSubmit');
+    if (lastSubmit)
+      lastSubmit.forEach(el => $scope.polygons.push(localStorageService.get(el.zip)))
+  }
 
-      $scope.generatePolygons = function() {
-        //TODO: Error on not found
-        $scope.polygons=[];
-        var nonLocalArr=[];
-        $scope.zipSelections = $scope.zipSelections ? $scope.zipSelections : [];
-				localStorageService.set('lastSubmit',$scope.zipSelections)
-        $scope.zipSelections.forEach((el,idx) => {
-          if (localStorageService.get(el.zip)) {
-  					$scope.polygons.push(localStorageService.get(el.zip));
-          } else {
-            nonLocalArr.push(el.zip)
+  function clearPolygons() {
+    $scope.polygons = [];
+    $scope.zipSelections=[];
+    localStorageService.set('lastSubmit',[])
+  }
+
+  function generatePolygons() {
+    $scope.polygons=[];
+    let nonLocalArr=[];
+    $scope.zipSelections = $scope.zipSelections ? $scope.zipSelections : [];
+		localStorageService.set('lastSubmit',$scope.zipSelections)
+    //retrieve all available zips from local storage, ajax for remaining
+    $scope.zipSelections.forEach((el) => {
+      let localZip=localStorageService.get(el.zip);
+      if (localZip) $scope.polygons.push(localZip);
+      else nonLocalArr.push(el.zip);
+    })
+
+    if (nonLocalArr.length) {
+      MapFactory.getZipData(nonLocalArr)
+      .then((res) => {
+        res.forEach((el,idx) => {
+          let poly = {
+            id: nonLocalArr[idx],
+            path: el,
+            stroke: {
+                color: '#6060FB',
+                weight: 2
+            },
+            editable: false,
+            draggable: false,
+            geodesic: false,
+            visible: true,
+            fill: {
+                color: '#ff0000',
+                opacity: 0.7
+            }
           }
+          $scope.polygons.push(poly);
+          localStorageService.set(nonLocalArr[idx],poly);
         })
-        console.log("nonlocal",nonLocalArr)
-        if (nonLocalArr.length) {
-          MapFactory.getZipData(nonLocalArr)
-          .then(function(res) {
-            console.log("getdatafactorycall",res)
-            res.forEach((el,idx) => {
-              let poly={
-                    id: nonLocalArr[idx],
-                    path: el,
-                    stroke: {
-                        color: '#6060FB',
-                        weight: 2
-                    },
-                    editable: false,
-                    draggable: false,
-                    geodesic: false,
-                    visible: true,
-                    fill: {
-                        color: '#ff0000',
-                        opacity: 0.7
-                    }
-              }
-              $scope.polygons.push(poly)
-              localStorageService.set(nonLocalArr[idx],poly);
-            })
-        });
+      });
     }
   }
 
-};
+  $scope.selectionLabels = {
+    selectAll       : "Select all",
+    selectNone      : "Select none",
+    reset           : "Reset",
+    search          : "Type here to search...",
+    nothingSelected : "Choose Zip Code(s)"
+  }
+
+  }
+}());
 
 },{}],23:[function(require,module,exports){
+(function () {
+
+'use strict';
+
 module.exports = function($http) {
 
-  var obj={};
+  return {
+    getZipData,
+    getZipOptions
+  }
 
-  obj.getZipData = (allZips) => {
-    return $http.get("/assets/state.json")
-    .then((zips) => {
-      let polyArr=[];
-      allZips.forEach((oneZip) => {
-        zips.data.features.forEach((el) => {
-          if (el.properties.ZCTA5CE10 === oneZip)
-            polyArr.push(el.geometry.coordinates)
+////////////
+
+    function getZipData(allZips) {
+      return $http.get("/assets/state.json")
+      .then((zips) => {
+        let polyArr=[];
+        allZips.forEach((oneZip) => {
+          zips.data.features.forEach((el) => {
+            if (el.properties.ZCTA5CE10 === oneZip)
+              polyArr.push(el.geometry.coordinates)
+          })
+        })
+        return polyArr;
+      })
+      .then((matchedZips) => {
+        return matchedZips.map((mapPath) => { //convert data format
+          mapPath=mapPath.reduce((prev,curr) => prev.concat(curr));
+          if (mapPath[0].length!==2) mapPath=mapPath.reduce((prev,curr) => prev.concat(curr));
+          return mapPath.map((el) => ({latitude: el[1],longitude: el[0]}))
         })
       })
-      return polyArr;
-    })
-    .then((matchedZips) => {
+      .catch((err) => console.log(err))
+    }
 
-      //TODO: refactor
-      function coordCleaner(mapPath) {
-        mapPath=mapPath.reduce((prev,curr) => prev.concat(curr));
-        if (mapPath[0].length!==2) mapPath=mapPath.reduce((prev,curr) => prev.concat(curr));
-        return mapPath.map((el) => ({latitude: el[1],longitude: el[0]})
-      )}
-      return matchedZips.map((each) => coordCleaner(each))
-    })
-    .catch((err) => console.log(err))
-  }
 
-  obj.getZipOptions = () => {
-    return $http.get("/assets/nygeo.json")
-    .then((zips) => {
-      let zipOptions=[];
-      let counties=["New York County", "Kings County", "Richmond County", "Bronx County","Queens County"];
-      zips.data.features.forEach(el => {
-         if (counties.indexOf(el.properties.county) > -1)
-          zipOptions.push({zip: el.id, county: el.properties.county})
+    function getZipOptions() {
+      return $http.get("/assets/nygeo.json")
+      .then((zips) => {
+        let zipOptions=[];
+        let counties=["New York County", "Kings County", "Richmond County", "Bronx County","Queens County"];
+        zips.data.features.forEach((el) => {
+           if (counties.indexOf(el.properties.county) > -1)
+            zipOptions.push({zip: el.id, county: el.properties.county})
+        })
+        return zipOptions;
       })
-      console.log("getting zip options!")
-      return zipOptions;
-    })
+      .catch((err) => console.log(err))
+    }
+
+
   }
-
-
-  return obj;
-
-}
+}());
 
 },{}],24:[function(require,module,exports){
+(function () {
+
+'use strict';
+
 module.exports = function() {
 	return {
 		restrict: 'E',
 		templateUrl: './app/shared/header/header.html'
-	};
-};
+	}
+}
+}());
 
 },{}]},{},[21]);

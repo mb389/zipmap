@@ -15,11 +15,11 @@ require('angular-local-storage');
 require('lodash');
 const mapCtrl = require('./components/map/map.controller.js');
 const mapFactory = require('./components/map/map.factory.js');
-const headerNav = require('./shared/header/header.js');
+const headerNav = require('./shared/header/header.directive.js');
 
-var app = angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule']);
+angular.module('myApp', ['ui.router','isteven-multi-select','ngSanitize','uiGmapgoogle-maps','ngMaterial','LocalStorageModule'])
 
-app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
+.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvider) {
 
 	uiGmapGoogleMapApiProvider.configure({
 			key: 'AIzaSyB6e7CrrfD4O0AfRSOK0nkHWdpZmQj-98k',
@@ -38,10 +38,11 @@ app.config(function($stateProvider, $urlRouterProvider,uiGmapGoogleMapApiProvide
 			allZips: (MapFactory) => MapFactory.getZipOptions().then(res => res)
 		}
 	})
-});
+})
 
-app.controller('MapCtrl', mapCtrl);
-app.factory('MapFactory', mapFactory);
-app.directive('headerNav', headerNav);
+.controller('MapCtrl', mapCtrl)
+.factory('MapFactory', mapFactory)
+.directive('headerNav', headerNav)
+
 
 }());
