@@ -1,11 +1,9 @@
 {
-  "name": "angularapp",
+  "name": "Zipmap",
   "version": "1.0.0",
-  "description": "A scalable structure for angular apps",
   "main": "\u001b ",
   "scripts": {
-    "build": "gulp",
-    "start": "node public/main.js"
+    "build": "gulp"
   },
   "repository": {
     "type": "git",
