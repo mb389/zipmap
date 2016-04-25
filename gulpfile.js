@@ -72,6 +72,9 @@ gulp.task('browser-sync', ['build'], function() {
 });
 
 
+gulp.task("heroku:production", function(){
+    console.log('entering prod'); // the task does not need to do anything.
+});
 
 
 gulp.task('default', ['browser-sync'], function(){
