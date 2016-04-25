@@ -4,7 +4,8 @@
   "description": "A scalable structure for angular apps",
   "main": "\u001b ",
   "scripts": {
-    "test": " "
+    "build": "gulp",
+    "start": "node public/main.js"
   },
   "repository": {
     "type": "git",
