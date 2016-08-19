@@ -8,11 +8,11 @@ var browserSync = require('browser-sync').create();
 var uglify = require('gulp-uglify');
 var concat = require('gulp-concat');
 var babel = require('gulp-babel');
-var mocha = require('gulp-mocha');
+var mocha = require('gulp-mocha'); //backend
 var karma = require('gulp-karma');
 var istanbul = require('gulp-istanbul');
 var notify = require('gulp-notify');
-var Server = require('karma').Server;
+var Server = require('karma').Server; // frontend
 
 var environments = require('gulp-environments');
 
@@ -79,11 +79,20 @@ gulp.task('browser-sync', ['build'], function() {
 /**
  * Run test once and exit
  */
-gulp.task('test', function (done) {
+
+gulp.task('test',['testBrowserJS']);
+
+// gulp.task('testServerJS', function (done) {
+//   return gulp.src('./src/test/server/*.js',{read: false})
+//   .pipe(mocha({reporter: 'spec'}));
+// });
+
+gulp.task('testBrowserJS', function (done) {
   new Server({
     configFile: __dirname + '/karma.conf.js',
     singleRun: true
   }, done).start();
+
 });
 
 gulp.task("heroku:prod", ['default']);

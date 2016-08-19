@@ -1,16 +1,17 @@
 // Karma configuration
 // Generated on Mon Apr 25 2016 11:30:02 GMT-0400 (EDT)
+var path = require('path')
 
 module.exports = function(config) {
   config.set({
 
     // base path that will be used to resolve all patterns (eg. files, exclude)
-    basePath: '',
+    basePath: path.join(__dirname,''),
 
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['mocha','chai'],
+    frameworks: ['mocha','chai','sinon'],
 
 
     // list of files / patterns to load in the browser
@@ -18,13 +19,14 @@ module.exports = function(config) {
       'node_modules/angular/angular.js',
       'node_modules/angular-ui-router/release/angular-ui-router.js',
 	     'node_modules/angular-mocks/angular-mocks.js',
-       'public/main.js',
+      //  'public/main.js',
       'src/test/*.js',
     ],
 
 
     // list of files to exclude
     exclude: [
+      'karma.confg.js'
     ],
 
 
@@ -60,6 +62,7 @@ module.exports = function(config) {
     // start these browsers
     // available browser launchers: https://npmjs.org/browse/keyword/karma-launcher
     browsers: ['PhantomJS'],
+
 
 
     // Continuous Integration mode
